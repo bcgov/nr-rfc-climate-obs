@@ -1,0 +1,84 @@
+classDiagram
+  direction LR
+  
+  ASP_Daily_Bat "1" --o "1" ASP_Daily_R : calls
+  bc_fwx "1" --o "1" bc_fwx_format_wrapper : data_pipe
+  bc_fwx_format_wrapper "1" --o "1" bc_fwx_format_R : calls
+  bc_fwx_format_R "1" --o "1" bc_fwx_cleanup_bat : data_pipe
+  bc_fwx_cleanup_bat "1" --o "1" bc_fwx_cleanup_R : calls
+
+  class MPOML_Download_Bat {
+    -script : E:\Shared\MPOML\SRC\xml_daily.bat
+    -schedule : Daily 8:15am
+    -description: wget wrapper to pull data from env can datamart
+    -inputs_1: https://hpfx.collab.science.gc.ca/<YYYYMMDD>/observations/xml/BC/today/today_bc_<YYYYMMDD>_e.xml
+    -inputs_2: https://hpfx.collab.science.gc.ca/<YYYYMMDD>/observations/xml/BC/yesterday/yesterday_bc_<YYYYMMDD>_e.xml
+    -ouptuts_1: E:\Shared\MPOML\Today\<%YYYY%-%MT%-%DD%>\today_bc_<YYYYMMDD>_e.xml
+    -ouptuts_2: E:\Shared\MPOML\Yesterday\<%YYYY%-%MT%-%DD%>\yesterday_bc_<YYYYMMDD>_e.xml
+  }
+
+  class ASP_Daily_R {
+    -script: E:\Shared\Real-time_Data\ASP_daily_R\SRC\ASP_daily_climate.R
+    -description: 
+    -inputs_1: E:/Shared/ASP_Data/TA.csv
+    -inputs_2: E:/Shared/ASP_Data/SW.csv
+    -inputs_3: E:/Shared/ASP_Data/PC.csv
+    -outputs_1: E:/Shared/Real-time_Data/ASP_daily_R/ASP_daily-<YYYY-MM-DD>.csv
+    -outputs_2: E:/Shared/Real-time_Data/ASP_daily_R/ASP_daily-<YYYY-MM-DD>_yesterday.csv
+    -outputs_3: E:/Shared/Real-time_Data/ASP_daily/ASP_daily-<YYYY-MM-DD>.csv
+    -r_version: 4.0.3
+  }
+
+  class ASP_Daily_Bat {
+    -script: E:\Shared\Real-time_Data\ASP_daily_R\SRC\ASP_daily_climate.bat
+    -schedule: Daily 8.40am
+    -schedule_name: ASP_daily_R
+    -description: wrapper to the R script
+  }
+
+  class bc_fwx {
+    -script: E:\Shared\Real-time_Data\F_WX\SRC\xml_bc_FWX_hourly_download.bat
+    -schedule: Hourly 7.52am
+    -schedule_name: bc_fwx
+    -description: wget based Download of all the wildfire data from the BC FWX datamart
+    -inputs_1: http://hpfx.collab.science.gc.ca/%YYYY%%MT%%DD%/WXO-DD/observations/swob-ml/partners/bc-forestry/%YYYY%%MT%%DD%/
+    -outputs_1: E:\Shared\Real-time_Data\F_WX\HOURLY\hpfx.collab.science.gc.ca\<YYYYMMDD>\
+  }
+
+  class bc_fwx_format_wrapper {
+    -script: E:\Shared\Real-time_Data\F_WX\SRC\xml_bc_FWX_hourly.bat
+    -schedule: Daily 9am / Daily F/S/S 9:30am
+    -schedule_name: bc_fwx_format
+    -description: wrapper to R script that formats the data
+  }
+
+  class bc_fwx_format_R {
+    -script: e:\Shared\Real-time_Data\F_WX\SRC\hourly_format.R
+    -description: R script reads / extracts all data from the various xml files
+    -inputs_1: E:\Shared\Real-time_Data\F_WX\HOURLY\hpfx.collab.science.gc.ca\<YYYYMMDD>\
+    -outputs_1: E:/Shared/Real-time_Data/F_WX/HOURLY/<YYYY-MM-DD>/<YYYY-MM-DD>.csv
+    -outputs_2: E:/Shared/Real-time_Data/F_WX/output/HourlyWeatherAllFields_WA.txt
+  }
+
+  class bc_fwx_cleanup_bat {
+    -script: \\drain\Shared\Real-time_Data\F_WX\SRC\rm_bc_FWX_directories.bat
+    -description: wrapper to an R script
+    -schedule: Daily 9am / Daily F/S/S 9:30am
+    -schedule_name: bc_fwx_rm
+  }
+
+  class bc_fwx_cleanup_R {
+    -script: \\drain\Shared\Real-time_Data\F_WX\SRC\rm_directories.R
+    -description: Deletes data from the input_1 directory that is older than 2 days
+    -inputs_1: E:\Shared\Real-time_Data\F_WX\HOURLY\hpfx.collab.science.gc.ca\<YYYYMMDD>\
+    -inputs_2: E:\\Shared\\Real-time_Data\\F_WX\\HOURLY\\<YYYY-MM-DD>\
+  }
+
+  class zxs_bat {
+    -script: E:\Shared\ZXS\SRC\ZXS_wget.bat
+    -description: pulls the zxs temperature data
+    -schedule: Daily 8am
+    -schedule_name: ZXS
+    -inputs_1: http://hpfx.collab.science.gc.ca/<YYYYMTDD>/WXO-DD/vertical_profile/observation/csv/
+    -outputs_1: E:\Shared\ZXS\ObsTephi_12_CZXS-<YYYY-MM-DD>.csv
+  }
