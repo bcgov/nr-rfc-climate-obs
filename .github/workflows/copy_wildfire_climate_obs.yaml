@@ -10,11 +10,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  dl_cansip_grib2:
+  download_wildfire_climate_obs:
     defaults:
       run:
         shell: bash
-    name: 'Download CANSIP Grib2 Files'
+    name: 'Download Wildfire xml climate obs files'
     runs-on: ubuntu-20.04
     environment: PROD
     env:
@@ -44,8 +44,8 @@ jobs:
       shell: bash
       run: |
         ls -la
-    - id: download_grib
-      name: download grib files
+    - id: download_FWX
+      name: download wildfire data and upload to s3
       shell: bash
       run: |
         python scripts/python/main_fwx.py
