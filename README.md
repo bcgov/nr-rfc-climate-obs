@@ -13,7 +13,5 @@ aquisition / processing scripts.
 
 # Contents:
 
-    * [overview of existing data processing pipeline](./docs/background.md)
-    * [mermaid docs of existing pipeline](./docs/data_description.mmd)
-    
-
+* [overview of existing data processing pipeline](./docs/background.md)
+* [mermaid docs of existing pipeline](./docs/data_description.mmd)
