@@ -15,5 +15,3 @@ aquisition / processing scripts.
 
 * [overview of existing data processing pipeline](./docs/background.md)
 * [mermaid docs of existing pipeline](./docs/data_description.mmd)
-    
-
