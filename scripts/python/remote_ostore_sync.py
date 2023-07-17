@@ -37,10 +37,15 @@ def get_file(local_path_file, file_url, ostore_path, sleep=2):
             with open(local_path_file, 'wb') as f:
                 f.write(r.content)
             session.close()
-    # if the file already exists locally then just write to ostore.  Shouldn't 
+    # if the file already exists locally then just write to ostore.  Shouldn't
     # get here if it already exists in ostore.
     LOGGER.debug(f"ostore path: {ostore_path}")
     OSTORE.put_object(local_path=local_path_file, ostore_path=ostore_path)
+
+def pull_s3_file(local_path_file, ostore_path):
+    LOGGER.debug(f"local_path_file: {local_path_file}")
+    LOGGER.debug(f"ostore_path: {ostore_path}")
+    OSTORE.get_object(local_path=local_path_file, file_path=ostore_path)
 
 
 class SyncRemoteConfig:
@@ -56,6 +61,7 @@ class SyncRemoteConfig:
         self.remote_date_fmt = remote_date_fmt
         self.ostore_dir_date_fmt = ostore_dir_date_fmt
         self.current_date = current_date
+        self.ostore_dir = self.calc_ostore_path()
 
     def calc_root_url(self):
         """Fills in the date strings in the url template to create a valid url
@@ -69,14 +75,14 @@ class SyncRemoteConfig:
         url = self.remote_location.format(date_str=date_str)
         LOGGER.debug(f"url: {url}")
         return url
-    
+
     def calc_ostore_path(self):
         date_str = self.current_date.strftime(self.ostore_dir_date_fmt)
         ostore_path = self.ostore_dir.format(date_str=date_str)
         LOGGER.debug(f"ostore_path: {ostore_path}")
         return ostore_path
 
-    
+
 class Contents:
     """use to wrap the results of the html parser
     """
@@ -104,9 +110,10 @@ class SyncRemote:
         # to an async queue for downloading
         self.dl_job_list = []
         self.ostore_files = []
+        self.ostore_pull_job_list = []
 
     def sync(self, url: str, local_file_path: str, ostore_path, first_call=True, recurse_depth=0):
-        """using the config that was sent will read the data that is available on 
+        """using the config that was sent will read the data that is available on
         the remote url, and the data that currently exists in object storage, then
         iterate over the remote data, pulling and pushing to object storage as needed.
 
@@ -114,7 +121,7 @@ class SyncRemote:
         :type url: str
         :param local_file_path: The path where the files should be syned to
         :type local_file_path: str
-        :param stop: Used for debugging... if set to true will raise an exception after 
+        :param stop: Used for debugging... if set to true will raise an exception after
             a single directory has been synced
         :type stop: bool, optional
         """
@@ -131,20 +138,24 @@ class SyncRemote:
         for infile in contents.files:
             # doesn't exist in ostore
             ostore_full_path = os.path.join(ostore_path, infile)
+            local_path_file = os.path.join(local_file_path, infile)
+            local_path_dir = os.path.dirname(local_path_file)
+            file_url = os.path.join(url, infile)
+
             if ostore_full_path not in self.ostore_files:
-                local_path_file = os.path.join(local_file_path, infile)
                 if not os.path.exists(local_path_file):
-                    local_path_dir = os.path.dirname(local_path_file)
+                    # file doesn't exist in ostore or locally
                     if not os.path.exists(local_path_dir):
                         os.makedirs(local_path_dir)
 
-                LOGGER.debug(f"ostore_full_path: {ostore_full_path}")
-                file_url = os.path.join(url, infile)
-                LOGGER.debug(f"adding local_path_file: {local_path_file}")
-                self.dl_job_list.append((local_path_file, file_url,
-                                         ostore_full_path))
-                    
-
+                    LOGGER.debug(f"ostore_full_path: {ostore_full_path}")
+                    LOGGER.debug(f"adding local_path_file: {local_path_file}")
+                    self.dl_job_list.append((local_path_file, file_url,
+                                            ostore_full_path))
+            elif not os.path.exists(local_path_file):
+                # file IS in ostore but isn't available locally
+                LOGGER.debug(f"pulling from ostore path to local: {ostore_full_path}")
+                self.ostore_pull_job_list.append((local_path_file, ostore_full_path))
 
         for dir in contents.directories:
             dir_url = os.path.join(url, dir)
@@ -152,24 +163,31 @@ class SyncRemote:
             ostore_path_dir = os.path.join(ostore_path, dir)
             LOGGER.debug(f"dir: {dir_url}")
             self.sync(url=dir_url, local_file_path=next_file_path,
-                      ostore_path=ostore_path_dir, first_call=False, 
+                      ostore_path=ostore_path_dir, first_call=False,
                       recurse_depth=recurse_depth)
-        
+
         if first_call:
             LOGGER.debug(f"FIRST CALL: {len(self.dl_job_list)}")
             LOGGER.debug(f"self.dl_job_list: {self.dl_job_list}")
             try:
-                # with multiprocessing.pool.ThreadPool(6) as p:
-                with multiprocessing.Pool(processes=6) as p:
-                    #p.map(self._get_file, self.dl_job_list)
-                    p.starmap(get_file, self.dl_job_list)
+                if self.dl_job_list:
+                    with multiprocessing.Pool(processes=6) as p:
+                        #p.map(self._get_file, self.dl_job_list)
+                        p.starmap(get_file, self.dl_job_list)
+
+                LOGGER.debug(f"ostore pulll job list: {self.ostore_pull_job_list}")
+                if self.ostore_pull_job_list:
+                    with multiprocessing.Pool(processes=6) as p:
+                        #p.map(self._get_file, self.dl_job_list)
+
+                        p.starmap(pull_s3_file, self.ostore_pull_job_list)
 
             except KeyboardInterrupt:
                 LOGGER.error('keyboard interupt... Exiting download pool')
             LOGGER.debug(f"FINISHED: {len(self.dl_job_list)}")
 
     def _get_contents(self, url) -> Contents:
-        """Reads the html from the url and parses it to try the contents as links to 
+        """Reads the html from the url and parses it to try the contents as links to
         either directories or files.
 
         :param url: _description_
@@ -205,10 +223,12 @@ class SyncRemote:
         return contents
 
     def get_ostore_files(self):
-        
+        if self.config.ostore_dir[-1] != '/':
+            self.config.ostore_dir += '/'
+
         file_list = OSTORE.list_objects(self.config.ostore_dir, return_file_names_only=True)
         file_list = [i for i in file_list]
-        
+
         LOGGER.debug(f"file_list: {file_list}")
         self.ostore_files = file_list
 

@@ -13,5 +13,6 @@
     "editor.rulers": [
         88,
         100      ],
-
+    "files.trimTrailingWhitespace": true,
+    "terminal.integrated.scrollback": 5000
 }
