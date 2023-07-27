@@ -91,7 +91,7 @@ jobs:
         tags: |
           ghcr.io/${{ github.repository_owner }}/firedata_pipe:latest
           ghcr.io/${{ github.repository_owner }}/firedata_pipe:${{ env.IMAGE_TAG }}
-          #ghcr.io/${{ github.repository_owner }}/firedata_pipe:pr-${{ github.event.number }}
+        # ghcr.io/${{ github.repository_owner }}/firedata_pipe:pr-${{ github.event.number }}
 
   # This workflow contains a single job called "build"
   DeployJob:
