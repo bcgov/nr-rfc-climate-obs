@@ -11,7 +11,7 @@
     "autoDocstring.docstringFormat": "sphinx",
 
     "editor.rulers": [
-        88,
+        85,
         100      ],
     "files.trimTrailingWhitespace": true,
     "terminal.integrated.scrollback": 5000

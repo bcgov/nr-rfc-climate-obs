@@ -1,0 +1,16 @@
+linters: linters_with_defaults(
+    line_length_linter(85),
+    commented_code_linter = NULL,
+    indentation_linter(indent = 4L)
+  )
+exclusions: list(
+    "scripts/python/.*",
+    ".github/.*",
+    ".pytest_cache/.*",
+    ".vscode/.*",
+    "docs/.*",
+    "renv/.*",
+    "tmp/.*",
+    "venv/.*"
+  )
+encoding: "UTF-8"
