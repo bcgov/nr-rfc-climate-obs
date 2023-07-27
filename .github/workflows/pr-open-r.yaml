@@ -47,7 +47,7 @@ jobs:
       run: |
         DATESTAMP=$(date +%Y%m%d-%H%M)
         echo datestamp is $DATESTAMP
-        echo event number: ${{ github.event.number }}
+        #echo event number: ${{ github.event.number }}
         echo "IMAGE_TAG=${DATESTAMP}" >> "$GITHUB_OUTPUT"
 
   BuildContainerImage:
@@ -87,8 +87,7 @@ jobs:
         IMAGE_TAG: ${{ needs.CalculateImageTags.outputs.imagetag }}
       with:
         push: true # Will only build if this is not here
-        file: r_dat_prep.Dockerfile
-        tags: |
+        file: r_py_data_prep.Dockerfile
           ghcr.io/${{ github.repository_owner }}/firedata_pipe:latest
           ghcr.io/${{ github.repository_owner }}/firedata_pipe:${{ env.IMAGE_TAG }}
         # ghcr.io/${{ github.repository_owner }}/firedata_pipe:pr-${{ github.event.number }}
