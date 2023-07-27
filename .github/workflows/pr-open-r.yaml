@@ -88,6 +88,7 @@ jobs:
       with:
         push: true # Will only build if this is not here
         file: r_py_data_prep.Dockerfile
+        tags: |
           ghcr.io/${{ github.repository_owner }}/firedata_pipe:latest
           ghcr.io/${{ github.repository_owner }}/firedata_pipe:${{ env.IMAGE_TAG }}
         # ghcr.io/${{ github.repository_owner }}/firedata_pipe:pr-${{ github.event.number }}
