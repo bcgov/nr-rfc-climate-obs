@@ -54,3 +54,10 @@ venv/**
 *.pyc
 
 tmp/**
+.Rprofile
+renv/activate.R
+lint_report.txt
+junk/**
+scripts/r/hourly_format_orig.R
+testing2.dockerfile
+testing.dockerfile

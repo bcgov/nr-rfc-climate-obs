@@ -1,5 +1,3 @@
-
-
 import NRUtil.NRObjStoreUtil
 import requests
 import logging
@@ -7,6 +5,7 @@ import bs4
 import os
 import multiprocessing
 import time
+import datetime
 
 
 LOGGER = logging.getLogger(__name__)
@@ -47,7 +46,6 @@ def pull_s3_file(local_path_file, ostore_path):
     LOGGER.debug(f"ostore_path: {ostore_path}")
     OSTORE.get_object(local_path=local_path_file, file_path=ostore_path)
 
-
 class SyncRemoteConfig:
     def __init__(self,
                  remote_location,
@@ -61,7 +59,10 @@ class SyncRemoteConfig:
         self.remote_date_fmt = remote_date_fmt
         self.ostore_dir_date_fmt = ostore_dir_date_fmt
         self.current_date = current_date
+        self.yesterday = self.current_date - datetime.timedelta(days=1)
         self.ostore_dir = self.calc_ostore_path()
+        # self.yesterday_date_str = self.yesterday.strftime(self.remote_date_fmt)
+        self.max_retries = 5
 
     def calc_root_url(self):
         """Fills in the date strings in the url template to create a valid url
@@ -71,17 +72,21 @@ class SyncRemoteConfig:
         :rtype: str
         """
         date_str = self.current_date.strftime(self.remote_date_fmt)
+        yesterday_date_str = self.yesterday.strftime(self.remote_date_fmt)
         LOGGER.debug(f"date_str: {date_str}")
-        url = self.remote_location.format(date_str=date_str)
+        url = self.remote_location.format(date_str=date_str,
+                                          yesterday_date_str=yesterday_date_str)
         LOGGER.debug(f"url: {url}")
         return url
 
     def calc_ostore_path(self):
         date_str = self.current_date.strftime(self.ostore_dir_date_fmt)
-        ostore_path = self.ostore_dir.format(date_str=date_str)
+        yesterday_date_str = self.yesterday.strftime(self.remote_date_fmt)
+
+        ostore_path = self.ostore_dir.format(date_str=date_str,
+                                             yesterday_date_str=yesterday_date_str)
         LOGGER.debug(f"ostore_path: {ostore_path}")
         return ostore_path
-
 
 class Contents:
     """use to wrap the results of the html parser
@@ -186,7 +191,7 @@ class SyncRemote:
                 LOGGER.error('keyboard interupt... Exiting download pool')
             LOGGER.debug(f"FINISHED: {len(self.dl_job_list)}")
 
-    def _get_contents(self, url) -> Contents:
+    def _get_contents(self, url, retries=0) -> Contents:
         """Reads the html from the url and parses it to try the contents as links to
         either directories or files.
 
@@ -195,10 +200,22 @@ class SyncRemote:
         :return: _description_
         :rtype: _type_
         """
-        r = requests.get(url)
-        html = r.text
-        contents = self._parse_html(html=html)
-        return contents
+        r = None
+        try:
+            r = requests.get(url)
+            html = r.text
+            contents = self._parse_html(html=html)
+            r.close()
+            return contents
+        except requests.exceptions.ConnectionError:
+            r.close()
+            if retries > self.config.max_retries:
+                raise
+            retries += 1
+            sleep_time = retries * 5
+            LOGGER.error(f"ConnectionError, sleeping for {sleep_time} seconds and retrying: {url}")
+            time.sleep(sleep_time)
+            self._get_contents(url=url, retries=retries)
 
     def _parse_html(self, html:str) -> dict:
         soup = bs4.BeautifulSoup(html, 'html.parser')
@@ -211,7 +228,8 @@ class SyncRemote:
         #         dirs.append(href['href'])
         directories = []
         files = []
-        for img_tag, a_tag in zip(soup.find_all('img'), soup.find_all('a')):
+        img_a_tags = zip(soup.find_all('img'), soup.find_all('a'))
+        for img_tag, a_tag in img_a_tags:
             if a_tag.text.lower() not in self.skip_dirs:
                 if img_tag['alt'] == '[DIR]':
                     directories.append(a_tag['href'])
@@ -219,6 +237,13 @@ class SyncRemote:
                     files.append(a_tag['href'])
         LOGGER.debug(f"files: {files}")
         LOGGER.debug(f"dirs: {directories}")
+        if not files and not directories:
+            for a_tag in soup.find_all('a'):
+                if a_tag.text.lower() not in self.skip_dirs:
+                    files.append(a_tag['href'])
+
+
+
         contents = Contents(directories=directories, files=files)
         return contents
 

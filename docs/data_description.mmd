@@ -1,6 +1,7 @@
 classDiagram
   direction LR
-  
+
+
   ASP_Daily_Bat "1" --o "1" ASP_Daily_R : calls
   bc_fwx "1" --o "1" bc_fwx_format_wrapper : data_pipe
   bc_fwx_format_wrapper "1" --o "1" bc_fwx_format_R : calls
@@ -19,7 +20,7 @@ classDiagram
 
   class ASP_Daily_R {
     -script: E:\Shared\Real-time_Data\ASP_daily_R\SRC\ASP_daily_climate.R
-    -description: 
+    -description:
     -inputs_1: E:/Shared/ASP_Data/TA.csv
     -inputs_2: E:/Shared/ASP_Data/SW.csv
     -inputs_3: E:/Shared/ASP_Data/PC.csv
