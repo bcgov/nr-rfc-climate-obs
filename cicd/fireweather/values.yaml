@@ -80,3 +80,32 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+
+app:
+  name: fireweather
+  zone: dev
+  component: fire-data-prep-job
+
+image:
+  image_tag: 20230727-2220
+  domain: apps.silver.devops.gov.bc.ca
+  registry:  ghcr.io
+  #promote: bcgov/nr-rfc-grib-copy/datamart_listener:prod
+  promote: bcgov/firedata_pipe:20230727-2220
+  image_registry: image-registry.openshift-image-registry.svc:5000
+  image_name: firedata_pipe
+
+fire_data_job:
+  fire_data_pvc_name: firedata-pvc
+  fire_data_pvc_size: "250Mi"
+  fire_data_mnt_point: /data
+
+obj_store:
+  secret_name: objectstore-secret
+  bucket: test_bucket
+  host: test_host
+  user_id: test_user_id
+  secret: super_secret
+
+

@@ -99,7 +99,7 @@ jobs:
       run:
         shell: bash
     needs: [CalculateImageTags, BuildContainerImage]
-    name: 'Deploy AMQP Listener Image'
+    name: 'Deploy the Helm Chart Listener Image'
     runs-on: ubuntu-22.04
     environment: dev
 

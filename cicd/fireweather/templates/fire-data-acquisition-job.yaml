@@ -1,83 +1,60 @@
 # utility job used to help with debugging database
 # and other issues
 apiVersion: batch/v1
-kind: Job
+kind: CronJob
 metadata:
-  name: demo-job
+  name: fire-data-acquisition-job
 spec:
-  ttlSecondsAfterFinished: 100
+  #ttlSecondsAfterFinished: 100
   suspend: true
-  template:
+  schedule: "5 4 * * *"
+  jobTemplate:
     spec:
-      imagePullSecrets:
-        - name: {{ .Values.artifactory_secret_name }}
-      volumes:
-      - name: demojob-volume
-        persistentVolumeClaim:
-        #  claimName: {{ .Values.postgresdb_params.database_pvc_name }}
-          claimName: {{ .Values.dataloadjob.dataload_pvc_name }}
-      containers:
-      - name: demogdal
-        image: >-
-          artifacts.developer.gov.bc.ca/docker-remote/guylafleur/gdal-util:{{ .Values.dataloadjob.imagetag }}
-        volumeMounts:
-        - name: demojob-volume
-          mountPath: /data
+      template:
+        spec:
+          volumes:
+          - name: firedata-volume
+            persistentVolumeClaim:
+              claimName: {{ .Values.fire_data_job.fire_data_pvc_name }}
+          containers:
+          - name: demogdal
+            image: >-
+              {{ .Values.image.registry }}/{{ .Values.image.promote }}
 
-        #Calling the shell script that was pulled by the init container
-        # link to article showing how to call multiple commands in single
-        # call: https://stackoverflow.com/questions/33979501/kubernetes-passing-multiple-commands-to-the-container
-        command: ["/bin/bash"]
-        args:
-          - -c
-          - >-
-              sleep 60000 && ls
-        env:
-          - name: POSTGRES_USER
-            valueFrom:
-              secretKeyRef:
-                key: database-user
-                name: {{ .Values.postgresdb_params.database_secret_name }}
-          - name: POSTGRES_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                key: database-password
-                name: {{ .Values.postgresdb_params.database_secret_name }}
-          - name: POSTGRES_DB
-            valueFrom:
-              secretKeyRef:
-                key: database-name
-                name: {{ .Values.postgresdb_params.database_secret_name }}
-          - name: OBJECTSTORE_BUCKET
-            valueFrom:
-              secretKeyRef:
-                key: OBJECTSTORE_BUCKET
-                name: {{ .Values.objectstorage.secret_name }}
-          - name: OBJECTSTORE_HOST
-            valueFrom:
-              secretKeyRef:
-                key: OBJECTSTORE_HOST
-                name: {{ .Values.objectstorage.secret_name }}
-          - name: OBJECTSTORE_ID
-            valueFrom:
-              secretKeyRef:
-                key: OBJECTSTORE_ID
-                name: {{ .Values.objectstorage.secret_name }}
-          - name: OBJECTSTORE_SECRET
-            valueFrom:
-              secretKeyRef:
-                key: OBJECTSTORE_SECRET
-                name: {{ .Values.objectstorage.secret_name }}
+            volumeMounts:
+            - name: firedata-volume
+              mountPath: {{ .Values.fire_data_job.fire_data_mnt_point }}
 
-      initContainers:
-      - name: config-data
-        image: >-
-          artifacts.developer.gov.bc.ca/docker-remote/curlimages/curl:7.81.0
-        #docker pull busybox:1.35.0
-        #  artifacts.developer.gov.bc.ca/docker-remote/alpine/git:v2.32.0
-        command: ["curl","https://raw.githubusercontent.com/bcgov/nr-water-notations/main/jobs/demogdal.sh","-o","/data/demogdal.sh"]
-        #command: ["ls","/data"]
-        volumeMounts:
-        - name: demojob-volume
-          mountPath: /data
-      restartPolicy: Never
+            #Calling the shell script that was pulled by the init container
+            # link to article showing how to call multiple commands in single
+            # call: https://stackoverflow.com/questions/33979501/kubernetes-passing-multiple-commands-to-the-container
+            command: ["/bin/bash"]
+            args:
+              - -c
+              - >-
+                  python main_fwx.py &&
+                  Rscript hourly_fire_data.R
+            env:
+              - name: OBJ_STORE_BUCKET
+                valueFrom:
+                  secretKeyRef:
+                    key: OBJ_STORE_BUCKET
+                    name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.obj_store.secret_name }}
+              - name: OBJ_STORE_HOST
+                valueFrom:
+                  secretKeyRef:
+                    key: OBJ_STORE_HOST
+                    name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.obj_store.secret_name }}
+              - name: OBJ_STORE_USER
+                valueFrom:
+                  secretKeyRef:
+                    key: OBJ_STORE_USER
+                    name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.obj_store.secret_name }}
+              - name: OBJ_STORE_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    key: OBJ_STORE_SECRET
+                    name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.obj_store.secret_name }}
+              - name: F_WX_DATA_DIR
+                value: {{ .Values.fire_data_job.fire_data_mnt_point }}
+          restartPolicy: Never

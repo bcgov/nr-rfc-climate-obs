@@ -39,7 +39,8 @@ cnfig = remote_ostore_sync.SyncRemoteConfig(
 # )
 
 # get the current date string
-local_file_path = f'./tmp/raw/{current_date_str}'
+local_file_path_root = os.getenv('F_WX_DATA_DIR', f'./tmp')
+local_file_path = os.path.join(local_file_path_root, 'raw', current_date_str)
 if not os.path.exists(local_file_path):
     os.makedirs(local_file_path)
 
