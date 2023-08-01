@@ -41,6 +41,3 @@ RUN R -e "install.packages('renv', version = '0.17.3', repos = 'https://cloud.r-
     python3 -m ensurepip && \
     pip3 install --no-cache --upgrade pip setuptools && \
     pip install -r requirements.txt
-
-
-ENTRYPOINT [ "Rscript", "hourly_format.R"]
