@@ -36,7 +36,8 @@ COPY --from=STAGE1 /app/renv /app/renv
 COPY --from=STAGE1 ["/app/renv.lock", "/app/.Rprofile", "/app/"]
 
 ENV PYTHONUNBUFFERED=1
-RUN R -e "install.packages('renv', version = '0.17.3', repos = 'https://cloud.r-project.org')" && \
+RUN apk add libxml2 && \
+    R -e "install.packages('renv', version = '0.17.3', repos = 'https://cloud.r-project.org')" && \
     apk add --update --no-cache python3 && ln -sf python3 /usr/bin/python && \
     python3 -m ensurepip && \
     pip3 install --no-cache --upgrade pip setuptools && \
