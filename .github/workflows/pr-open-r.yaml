@@ -1,0 +1,162 @@
+# Build the R container Image
+name: PR Open
+
+on:
+  # used on push for testing / development / debugging
+  # ---------------------------------------------------------
+  # push:
+  #   branches: ['feat/23-oc-fire-weather']
+
+  pull_request:
+    # debug: remove the dev,putting build action on non existent branches for debug
+    branches: ['main']
+    types: ['opened', 'reopened', 'edited', 'synchronize']
+    paths-ignore:
+      - .vscode/**
+      - .flake8
+      - .lintr
+      - .RData
+      - .Rhistory
+      - .Rprofile
+      - .gitignore
+      - LICENSE
+      - readme.md
+      - code_of_conduct.md
+      - .flake8
+      - COMPLIANCE.yaml
+      - docs/**
+      - renv.lock
+      - scripts/python/**
+  workflow_dispatch:
+
+jobs:
+  # calculate the image tag / used to tag image and then for the
+  # deployment
+  CalculateImageTags:
+    defaults:
+      run:
+        shell: bash
+    name: calculateImageTag
+    runs-on: ubuntu-22.04
+    outputs:
+      imagetag: ${{ steps.CalculateImageTagstep.outputs.IMAGE_TAG}}
+      imagetag-pr: ${{ steps.CalculateImageTagstep.outputs.IMAGE_TAG_PR }}
+    steps:
+    - name: Calculate Image Tag
+      id: CalculateImageTagstep
+      shell: bash
+      run: |
+        DATESTAMP=$(date +%Y%m%d-%H%M)
+        echo datestamp is $DATESTAMP
+        event_num=${{ github.event.number }}
+        if [[ -z "${event_num// }" ]]; then
+          echo "IMAGE_TAG_PR=pr-999" >> "$GITHUB_OUTPUT"
+        else
+          echo "IMAGE_TAG_PR=pr-$event_num" >> "$GITHUB_OUTPUT"
+        fi
+        echo event number: ${{ github.event.number }}
+        echo "IMAGE_TAG=${DATESTAMP}" >> "$GITHUB_OUTPUT"
+
+  BuildContainerImage:
+    defaults:
+      run:
+        shell: bash
+    needs: CalculateImageTags
+    name: 'Build Container Image'
+    runs-on: ubuntu-22.04
+    env:
+      DEBUG_DEPLOY: false
+
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v3
+      id: checkout
+
+    - name: Verify tag
+      id: CalculateImageTagstep
+      shell: bash
+      env:
+        IMAGE_TAG: ${{ needs.CalculateImageTags.outputs.imagetag }}
+      run: |
+        echo image tag is $IMAGE_TAG ${{ env.IMAGE_TAG }}
+        echo event number is: ${{ github.event.number }}
+
+    - name: Log in to GitHub Docker Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner  }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and Push Client Docker Image
+      uses: docker/build-push-action@v4
+      env:
+        IMAGE_TAG: ${{ needs.CalculateImageTags.outputs.imagetag }}
+        IMAGE_TAG_PR: ${{ needs.CalculateImageTags.outputs.imagetag-pr }}
+      with:
+        push: true # Will only build if this is not here
+        file: r_py_data_prep.Dockerfile
+        tags: |
+          ghcr.io/${{ github.repository_owner }}/firedata_pipe:latest
+          ghcr.io/${{ github.repository_owner }}/firedata_pipe:${{ env.IMAGE_TAG }}
+          ghcr.io/${{ github.repository_owner }}/firedata_pipe:pr-${{ github.event.number }}
+
+  # This workflow contains a single job called "build"
+  DeployJob:
+    defaults:
+      run:
+        shell: bash
+    needs: [CalculateImageTags, BuildContainerImage]
+    name: 'Deploy the Helm Chart Listener Image'
+    runs-on: ubuntu-22.04
+    environment: dev
+
+    steps:
+    - uses: actions/checkout@v3
+      id: checkout
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+
+    - name: Log in and set context
+      uses: redhat-actions/oc-login@v1
+      with:
+        openshift_server_url: ${{ vars.OC_SERVER }}
+        openshift_token: ${{ secrets.OC_TOKEN }}
+        namespace: ${{ vars.OC_NAMESPACE }}
+
+    - name: Calculate Zone
+      id: calculateZone
+      shell: bash
+      run: |
+        event_num=${{ github.event.number }}
+        if [[ -z "${event_num// }" ]]; then
+          zone=pr-999
+        else
+          zone=pr-$event_num
+        fi
+        echo zone: $zone
+        echo "ZONE=$zone" >> $GITHUB_ENV
+
+    - name: Run Helm Chart
+      id: runHelmChart
+      shell: bash
+      env:
+        IMAGE_TAG: ${{ needs.CalculateImageTags.outputs.imagetag }}
+        OBJ_STORE_BUCKET: ${{ secrets.OBJ_STORE_BUCKET }}
+        OBJ_STORE_SECRET: ${{ secrets.OBJ_STORE_SECRET }}
+        OBJ_STORE_USER: ${{ secrets.OBJ_STORE_USER }}
+        OBJ_STORE_HOST: ${{ vars.OBJ_STORE_HOST }}
+      run: |
+        cd cicd
+
+        helm upgrade --install fireweather-${{ env.ZONE }} fireweather \
+        --set obj_store.bucket=${{ env.IMAGE_TAG }} \
+        --set obj_store.host=${{ vars.OBJ_STORE_HOST }} \
+        --set obj_store.user_id=${{ env.OBJ_STORE_USER }} \
+        --set obj_store.secret=${{ env.OBJ_STORE_SECRET }} \
+        --set image.promote=bcgov/firedata_pipe:${{ env.IMAGE_TAG }} \
+        --set app.zone=${{ env.ZONE }} \
+        --set fire_data_job.fire_data_mnt_point=/data
+
+
+

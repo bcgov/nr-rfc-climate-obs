@@ -1,0 +1,20 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  labels:
+    app: {{ .Values.app.name }}-{{ .Values.app.zone }}
+  annotations:
+    volume.beta.kubernetes.io/storage-provisioner: csi.trident.netapp.io
+  finalizers:
+  - kubernetes.io/pvc-protection
+  name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.app.component }}-pvc
+  finalizers:
+    - kubernetes.io/pvc-protection
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.fire_data_job.fire_data_pvc_size }}
+  storageClassName: netapp-file-standard
+  volumeMode: Filesystem
