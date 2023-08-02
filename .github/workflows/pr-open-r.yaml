@@ -4,8 +4,8 @@ name: PR Open
 on:
   # used on push for testing / development / debugging
   # ---------------------------------------------------------
-  push:
-    branches: ['feat/23-oc-fire-weather']
+  # push:
+  #   branches: ['feat/23-oc-fire-weather']
 
   pull_request:
     # debug: remove the dev,putting build action on non existent branches for debug

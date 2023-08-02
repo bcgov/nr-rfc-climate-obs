@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: fire-data-acquisition-job
+  name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.app.component }}-job
 spec:
   #ttlSecondsAfterFinished: 100
   suspend: true
