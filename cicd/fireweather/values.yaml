@@ -88,11 +88,11 @@ app:
   component: fire-data-prep-job
 
 image:
-  image_tag: 20230727-2220
+  image_tag: 20230801-1651
   domain: apps.silver.devops.gov.bc.ca
   registry:  ghcr.io
   #promote: bcgov/nr-rfc-grib-copy/datamart_listener:prod
-  promote: bcgov/firedata_pipe:20230727-2220
+  promote: bcgov/firedata_pipe:20230801-1651
   image_registry: image-registry.openshift-image-registry.svc:5000
   image_name: firedata_pipe
 

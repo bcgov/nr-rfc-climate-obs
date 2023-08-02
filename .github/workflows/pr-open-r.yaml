@@ -134,16 +134,21 @@ jobs:
       shell: bash
       env:
         IMAGE_TAG: ${{ needs.CalculateImageTags.outputs.imagetag }}
-        ACCESS_TOKEN: ${{ secrets.CMC_TOKEN }}
+        OBJ_STORE_BUCKET: ${{ secrets.OBJ_STORE_BUCKET }}
+        OBJ_STORE_SECRET: ${{ secrets.OBJ_STORE_SECRET }}
+        OBJ_STORE_USER: ${{ secrets.OBJ_STORE_USER }}
+        OBJ_STORE_HOST: ${{ vars.OBJ_STORE_HOST }}
       run: |
         cd cicd
-        ls -la
 
-        # helm upgrade --install message-queue message-queue \
-
-        helm upgrade --install message-queue-${{ env.ZONE }} message-queue \
-        --set image.image_tag=${{ env.IMAGE_TAG }} \
+        helm upgrade --install fireweather-${{ env.ZONE }} fireweather \
+        --set obj_store.bucket=${{ env.IMAGE_TAG }} \
+        --set obj_store.host=${{ vars.OBJ_STORE_HOST }} \
+        --set obj_store.user_id=${{ env.OBJ_STORE_USER }} \
+        --set obj_store.secret=${{ env.OBJ_STORE_SECRET }} \
         --set image.promote=bcgov/firedata_pipe:${{ env.IMAGE_TAG }} \
         --set app.zone=${{ env.ZONE }} \
-        --set github_secrets.access_token=${{ env.ACCESS_TOKEN }}
+        --set fire_data_job.fire_data_mnt_point=/data
+
+
 

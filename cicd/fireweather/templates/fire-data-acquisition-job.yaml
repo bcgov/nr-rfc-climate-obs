@@ -17,7 +17,7 @@ spec:
             persistentVolumeClaim:
               claimName: {{ .Values.fire_data_job.fire_data_pvc_name }}
           containers:
-          - name: demogdal
+          - name: firedata
             image: >-
               {{ .Values.image.registry }}/{{ .Values.image.promote }}
 
@@ -28,12 +28,16 @@ spec:
             #Calling the shell script that was pulled by the init container
             # link to article showing how to call multiple commands in single
             # call: https://stackoverflow.com/questions/33979501/kubernetes-passing-multiple-commands-to-the-container
+            # --- lines to add back into the command args..
+            # python main_fwx.py &&
             command: ["/bin/bash"]
             args:
               - -c
               - >-
                   python main_fwx.py &&
-                  Rscript hourly_fire_data.R
+                  echo running the r script &&
+                  mkdir -p /data/renvcache &&
+                  Rscript hourly_format.R
             env:
               - name: OBJ_STORE_BUCKET
                 valueFrom:
@@ -57,4 +61,6 @@ spec:
                     name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.obj_store.secret_name }}
               - name: F_WX_DATA_DIR
                 value: {{ .Values.fire_data_job.fire_data_mnt_point }}
+              - name: RENV_PATHS_ROOT
+                value: /data/renvcache
           restartPolicy: Never
