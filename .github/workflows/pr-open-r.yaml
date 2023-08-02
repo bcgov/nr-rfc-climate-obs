@@ -40,6 +40,7 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       imagetag: ${{ steps.CalculateImageTagstep.outputs.IMAGE_TAG}}
+      imagetag-pr: ${{ steps.CalculateImageTagstep.outputs.IMAGE_TAG_PR }}
     steps:
     - name: Calculate Image Tag
       id: CalculateImageTagstep
@@ -47,7 +48,13 @@ jobs:
       run: |
         DATESTAMP=$(date +%Y%m%d-%H%M)
         echo datestamp is $DATESTAMP
-        #echo event number: ${{ github.event.number }}
+        event_num=${{ github.event.number }}
+        if [[ -z "${event_num// }" ]]; then
+          echo "IMAGE_TAG_PR=pr-999" >> "$GITHUB_OUTPUT"
+        else
+          echo "IMAGE_TAG_PR=pr-$event_num" >> "$GITHUB_OUTPUT"
+        fi
+        echo event number: ${{ github.event.number }}
         echo "IMAGE_TAG=${DATESTAMP}" >> "$GITHUB_OUTPUT"
 
   BuildContainerImage:
@@ -85,13 +92,14 @@ jobs:
       uses: docker/build-push-action@v4
       env:
         IMAGE_TAG: ${{ needs.CalculateImageTags.outputs.imagetag }}
+        IMAGE_TAG_PR: ${{ needs.CalculateImageTags.outputs.imagetag-pr }}
       with:
         push: true # Will only build if this is not here
         file: r_py_data_prep.Dockerfile
         tags: |
           ghcr.io/${{ github.repository_owner }}/firedata_pipe:latest
           ghcr.io/${{ github.repository_owner }}/firedata_pipe:${{ env.IMAGE_TAG }}
-        # ghcr.io/${{ github.repository_owner }}/firedata_pipe:pr-${{ github.event.number }}
+          ghcr.io/${{ github.repository_owner }}/firedata_pipe:pr-${{ github.event.number }}
 
   # This workflow contains a single job called "build"
   DeployJob:
