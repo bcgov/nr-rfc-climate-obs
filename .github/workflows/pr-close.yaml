@@ -95,11 +95,11 @@ jobs:
         # run helm
         # ---------------------------------
         helm upgrade --install fireweather-$zone fireweather \
-        --set obj_store.bucket=${{ env.IMAGE_TAG }} \
+        --set obj_store.bucket=${{ env.OBJ_STORE_BUCKET }} \
         --set obj_store.host=${{ vars.OBJ_STORE_HOST }} \
         --set obj_store.user_id=${{ env.OBJ_STORE_USER }} \
         --set obj_store.secret=${{ env.OBJ_STORE_SECRET }} \
-        --set image.promote=bcgov/firedata_pipe:${{ env.IMAGE_TAG }} \
+        --set image.promote=bcgov/firedata_pipe:$imagetag \
         --set app.zone=$zone \
         --set fire_data_job.fire_data_mnt_point=/data
 
