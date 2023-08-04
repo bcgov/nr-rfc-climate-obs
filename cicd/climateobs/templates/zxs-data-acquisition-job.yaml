@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.app.component }}-fire-data-job
+  name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.app.component }}-zxs-job
 spec:
   #ttlSecondsAfterFinished: 100
   suspend: true
@@ -13,16 +13,16 @@ spec:
       template:
         spec:
           volumes:
-          - name: firedata-volume
+          - name: climateobs-volume
             persistentVolumeClaim:
               claimName: {{ .Values.climateobs_job.climateobs_pvc_name }}
           containers:
-          - name: firedata
+          - name: zxsdata
             image: >-
-              {{ .Values.firedata_image.registry }}/{{ .Values.image.promote }}
+              {{ .Values.zxsdata_image.registry }}/{{ .Values.image.promote }}
 
             volumeMounts:
-            - name: firedata-volume
+            - name: climateobs-volume
               mountPath: {{ .Values.climateobs_job.climateobs_mnt_point }}
 
             #Calling the shell script that was pulled by the init container
@@ -34,10 +34,7 @@ spec:
             args:
               - -c
               - >-
-                  python main_fwx.py &&
-                  echo running the r script &&
-                  mkdir -p /data/renvcache &&
-                  Rscript hourly_format.R
+                  python run_zxs.py
             env:
               - name: OBJ_STORE_BUCKET
                 valueFrom:
@@ -59,8 +56,6 @@ spec:
                   secretKeyRef:
                     key: OBJ_STORE_SECRET
                     name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.obj_store.secret_name }}
-              - name: F_WX_DATA_DIR
-                value: {{ .Values.climateobs_job.climateobs_mnt_point }}
-              - name: RENV_PATHS_ROOT
-                value: /data/renvcache
+              - name: ZXS_DATA_DIR
+                value: {{ .Values.climateobs_job.climateobs_mnt_point }}/zxs_data
           restartPolicy: Never

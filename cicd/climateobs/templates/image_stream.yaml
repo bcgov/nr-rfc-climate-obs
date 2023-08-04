@@ -8,9 +8,9 @@ spec:
   lookupPolicy:
     local: true
   tags:
-    - name: {{ .Values.image.image_tag }}
+    - name: {{ .Values.firedata_image.image_tag }}
       from:
         kind: DockerImage
-        name: {{ .Values.image.registry }}/{{ .Values.image.promote }}
+        name: {{ .Values.firedata_image.registry }}/{{ .Values.firedata_image.promote }}
       referencePolicy:
         type: Local
