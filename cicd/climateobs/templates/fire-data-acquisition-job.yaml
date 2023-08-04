@@ -15,11 +15,11 @@ spec:
           volumes:
           - name: firedata-volume
             persistentVolumeClaim:
-              claimName: {{ .Values.climateobs_job.climateobs_pvc_name }}
+              claimName: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.app.component }}-pvc
           containers:
           - name: firedata
             image: >-
-              {{ .Values.firedata_image.registry }}/{{ .Values.image.promote }}
+              {{ .Values.firedata_image.registry }}/{{ .Values.firedata_image.promote }}
 
             volumeMounts:
             - name: firedata-volume

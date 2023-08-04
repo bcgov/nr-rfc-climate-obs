@@ -81,8 +81,14 @@ climateobs
 The cronjob is configured to run on a schedule, when testing you can initiate
 the job using this command.
 
+### init fire weather station job
 ```
 oc create job --from=cronjob/fire-data-acquisition-job "fire-data-manual-run-$(date +%s)"
+```
+
+### init zxs thermal gradient job
+```
+oc create job --from=cronjob/climateobs-dev-climateobs-prep-job-zxs-job "zxs-data-manual-run-$(date +%s)"
 ```
 
 Then monitor job via openshift console.
