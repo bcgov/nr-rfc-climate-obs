@@ -1,3 +1,9 @@
+"""
+This module was created to sync data from a remote location to
+local storage and then to object storage.
+
+"""
+
 import NRUtil.NRObjStoreUtil
 import requests
 import logging
@@ -13,12 +19,19 @@ OSTORE = NRUtil.NRObjStoreUtil.ObjectStoreUtil()
 
 
 def get_file(local_path_file, file_url, ostore_path, sleep=2):
-    """_summary_
+    """This method gets called asyncronously
 
-    :param local_path_file: _description_
-    :type local_path_file: _type_
-    :param file_url: _description_
-    :type file_url: _type_
+    :param local_path_file: The local file path where the file should be saved
+    :type local_path_file: str
+    :param file_url: the remote url where the file can be downloaded from
+    :type file_url: str
+    :param ostore_path: the object store path, basically where the files should be
+        located when copied to object storage
+    :type ostore_path: str
+    :param sleep: The number of seconds to sleep before retrying the download, mostly
+        used when a connection error occurs, the method will recurse and sleep for
+        this amount of time before retrying
+    :type sleep: int, optional
     """
     if not os.path.exists(local_path_file):
         LOGGER.debug(f"local_path_file: {local_path_file}")
@@ -42,33 +55,95 @@ def get_file(local_path_file, file_url, ostore_path, sleep=2):
     OSTORE.put_object(local_path=local_path_file, ostore_path=ostore_path)
 
 def pull_s3_file(local_path_file, ostore_path):
+    """This method gets called asyncronously from other methods in this module.  It
+    is required to download s3 data to a local path.
+
+    :param local_path_file: The local path where the S3 data should get copied to
+    :type local_path_file: str
+    :param ostore_path: the object store path where the file is comming from
+    :type ostore_path: str
+    """
     LOGGER.debug(f"local_path_file: {local_path_file}")
     LOGGER.debug(f"ostore_path: {ostore_path}")
     OSTORE.get_object(local_path=local_path_file, file_path=ostore_path)
 
 class SyncRemoteConfig:
+    """this class is a standard config class that is used to describe how data
+    should be synced between the remote source, local paths, and object storage.
+    """
     def __init__(self,
-                 remote_location,
-                 ostore_dir,
-                 remote_date_fmt,
-                 ostore_dir_date_fmt,
-                 current_date
+                 remote_location: str,
+                 ostore_dir: str,
+                 remote_date_fmt: str,
+                 ostore_dir_date_fmt: str,
+                 local_file_path: str,
+                 local_file_date_fmt: str,
+                 current_date: datetime.datetime
                  ):
+        """constructor defining the configuration for a data sync
+
+        :param remote_location: the source location where data should originate from
+          this path can contain the following f string variables: date_str
+        :type remote_location: str(url)
+        :param ostore_dir: the object store path where the data should be copied to,
+            this path can contain the following f string variables: date_str
+        :type ostore_dir: str
+        :param remote_date_fmt: the date format that should be used to fill in the
+            date_str variable in the remote_location
+        :type remote_date_fmt: str
+        :param ostore_dir_date_fmt: if the object store path contains date_str the
+            format that for that date string
+        :type ostore_dir_date_fmt: str
+        :param local_file_path: The local file path where the data should be copied
+        :type local_file_path: When resolving the path the date format that should be
+            used to fill in the date_str variable
+        :param current_date: the date object that should be used to calculate the
+            date strings
+        :type current_date: datetime.datetime
+        """
         self.remote_location = remote_location
         self.ostore_dir = ostore_dir
         self.remote_date_fmt = remote_date_fmt
         self.ostore_dir_date_fmt = ostore_dir_date_fmt
+        self.local_file_path = local_file_path
+        self.local_file_date_fmt = local_file_date_fmt
         self.current_date = current_date
         self.yesterday = self.current_date - datetime.timedelta(days=1)
         self.ostore_dir = self.calc_ostore_path()
         # self.yesterday_date_str = self.yesterday.strftime(self.remote_date_fmt)
         self.max_retries = 5
+        LOGGER.debug(f"self.local_file_date_fmt: {self.local_file_date_fmt}")
+        self.file_filter = []
+        self.check_local_dirs()
+
+    def check_local_dirs(self):
+        """Checks to see if the output path for the local data exists
+        """
+        local_file_path = self.calc_local_path()
+        if not os.path.exists(local_file_path):
+            LOGGER.info(
+                f"creating the ouput path for the local data: {local_file_path}")
+            os.makedirs(local_file_path)
+
+    def add_file_filter(self, file_filter: list):
+        """recieves a list of file names without any path that are targets for
+        sync, ie 3 way sync between remote/local/object storage.
+
+        if no files are added to the filter, then all the files on the remote site
+        will be downloaded.  If a single or multiple files are added to the filter
+        then only files matching the names of those in this filter will be downloaded
+
+        :param file_filter: a list of files that should be synced... all others will
+            be ignored.  If left empty then all files will be synced.
+        :type file_filter: list
+        """
+        self.file_filter.extend(file_filter)
 
     def calc_root_url(self):
         """Fills in the date strings in the url template to create a valid url
         based on the date contained in the property current_date
 
-        :return: url
+        :return: the url with the current_date date_str parameter populated
         :rtype: str
         """
         date_str = self.current_date.strftime(self.remote_date_fmt)
@@ -80,6 +155,13 @@ class SyncRemoteConfig:
         return url
 
     def calc_ostore_path(self):
+        """Fills in the date strings in the ostore path template to create a valid
+        ostore path
+
+        :return: a valid path to object storage based on the date that is contained
+            in the property current_date
+        :rtype: str
+        """
         date_str = self.current_date.strftime(self.ostore_dir_date_fmt)
         yesterday_date_str = self.yesterday.strftime(self.remote_date_fmt)
 
@@ -87,6 +169,20 @@ class SyncRemoteConfig:
                                              yesterday_date_str=yesterday_date_str)
         LOGGER.debug(f"ostore_path: {ostore_path}")
         return ostore_path
+
+    def calc_local_path(self):
+        """Takes the local file path that may have date dependencies in it and
+        translates those to paths to the local file system
+
+        :return: the local file path with the date_str parameter populated
+        :rtype: str
+        """
+        LOGGER.debug(f"self.current_date {self.current_date}")
+        LOGGER.debug(f"self.local_file_date_fmt: {self.local_file_date_fmt}")
+        date_str = self.current_date.strftime(self.local_file_date_fmt)
+        local_path = self.local_file_path.format(date_str=date_str)
+        LOGGER.debug(f"local_path: {local_path}")
+        return local_path
 
 class Contents:
     """use to wrap the results of the html parser
@@ -96,11 +192,17 @@ class Contents:
         self.files = files
 
 class SyncRemote:
-    """expecting the following environment variables to be set:
-    OBJ_STORE_BUCKET
-    OBJ_STORE_SECRET
-    OBJ_STORE_USER
-    OBJ_STORE_HOST
+    """This class contains the main functionality to do the three way sync between
+    ostore / local / remote.  It receives a SyncRemoteConfig object that describes
+    what needs to be synced, then calling the sync method will do the work.
+
+    This class requires the following environment variables to be set in order to
+    communicate with object storage:
+
+      * OBJ_STORE_BUCKET
+      * OBJ_STORE_SECRET
+      * OBJ_STORE_USER
+      * OBJ_STORE_HOST
     """
 
     def __init__(self, config: SyncRemoteConfig):
@@ -117,7 +219,17 @@ class SyncRemote:
         self.ostore_files = []
         self.ostore_pull_job_list = []
 
-    def sync(self, url: str, local_file_path: str, ostore_path, first_call=True, recurse_depth=0):
+    def sync(self):
+        root_url = self.config.calc_root_url()
+        ostore_path = self.config.calc_ostore_path()
+        local_file_path = self.config.calc_local_path()
+        self._sync(url=root_url,
+                   local_file_path=local_file_path,
+                   ostore_path=ostore_path,
+                   first_call=True
+                   )
+
+    def _sync(self, url: str, local_file_path: str, ostore_path, first_call=True, recurse_depth=0):
         """using the config that was sent will read the data that is available on
         the remote url, and the data that currently exists in object storage, then
         iterate over the remote data, pulling and pushing to object storage as needed.
@@ -141,7 +253,12 @@ class SyncRemote:
 
         contents = self._get_contents(url)
         for infile in contents.files:
+            # there is a filter, and the file is not in it
+            if (self.config.file_filter) and (infile not in self.config.file_filter):
+                continue
+
             # doesn't exist in ostore
+            LOGGER.debug(f"infile: {infile}")
             ostore_full_path = os.path.join(ostore_path, infile)
             local_path_file = os.path.join(local_file_path, infile)
             local_path_dir = os.path.dirname(local_path_file)
@@ -167,9 +284,9 @@ class SyncRemote:
             next_file_path = os.path.join(local_file_path, dir)
             ostore_path_dir = os.path.join(ostore_path, dir)
             LOGGER.debug(f"dir: {dir_url}")
-            self.sync(url=dir_url, local_file_path=next_file_path,
-                      ostore_path=ostore_path_dir, first_call=False,
-                      recurse_depth=recurse_depth)
+            self._sync(url=dir_url, local_file_path=next_file_path,
+                       ostore_path=ostore_path_dir, first_call=False,
+                       recurse_depth=recurse_depth)
 
         if first_call:
             LOGGER.debug(f"FIRST CALL: {len(self.dl_job_list)}")
@@ -208,14 +325,16 @@ class SyncRemote:
             r.close()
             return contents
         except requests.exceptions.ConnectionError:
-            r.close()
+            if r and isinstance(r, requests.Response):
+                r.close()
             if retries > self.config.max_retries:
                 raise
             retries += 1
             sleep_time = retries * 5
             LOGGER.error(f"ConnectionError, sleeping for {sleep_time} seconds and retrying: {url}")
             time.sleep(sleep_time)
-            self._get_contents(url=url, retries=retries)
+            contents = self._get_contents(url=url, retries=retries)
+            return contents
 
     def _parse_html(self, html:str) -> dict:
         soup = bs4.BeautifulSoup(html, 'html.parser')
@@ -228,23 +347,23 @@ class SyncRemote:
         #         dirs.append(href['href'])
         directories = []
         files = []
-        img_a_tags = zip(soup.find_all('img'), soup.find_all('a'))
-        for img_tag, a_tag in img_a_tags:
-            if a_tag.text.lower() not in self.skip_dirs:
-                if img_tag['alt'] == '[DIR]':
-                    directories.append(a_tag['href'])
-                elif img_tag['alt'].strip() not in ['Icon', '[PARENTDIR]']:
-                    files.append(a_tag['href'])
-        LOGGER.debug(f"files: {files}")
-        LOGGER.debug(f"dirs: {directories}")
-        if not files and not directories:
-            for a_tag in soup.find_all('a'):
-                if a_tag.text.lower() not in self.skip_dirs:
-                    files.append(a_tag['href'])
-
-
-
+        a_tags = soup.find_all('a')
+        #img_a_tags = zip(soup.find_all('img'), soup.find_all('a'))
+        LOGGER.debug(f"img_a_tags: {len(a_tags)}")
+        for a_tag in a_tags:
+            just_a_tag_text = a_tag.text.lower()
+            if just_a_tag_text == 'ObsTephi_12_CYZS.csv'.lower() or \
+                just_a_tag_text == 'ObsTephi_12_CZXS.csv'.lower():
+                LOGGER.debug(f"just_a_tag_text: {just_a_tag_text}")
+            if just_a_tag_text not in self.skip_dirs:
+                LOGGER.debug(f"a_tag: {a_tag.text}")
+                # id directory by trailing slash in the file name
+                if a_tag.text[-1] == '/':
+                    directories.append(a_tag.text)
+                else:
+                    files.append(a_tag.text)
         contents = Contents(directories=directories, files=files)
+
         return contents
 
     def get_ostore_files(self):
