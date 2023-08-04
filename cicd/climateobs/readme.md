@@ -72,8 +72,8 @@ helm upgrade --install \
 --set obj_store.user_id=$OBJ_STORE_USER \
 --set obj_store.host=$OBJ_STORE_HOST \
 --set fire_data_job.fire_data_mnt_point=/data \
-fireweather \
-fireweather
+climateobs \
+climateobs
 ```
 
 ## Initiate a manual run of the cronjob

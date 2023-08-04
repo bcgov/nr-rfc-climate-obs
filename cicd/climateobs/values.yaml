@@ -1,4 +1,4 @@
-# Default values for fireweather.
+# Default values for climateobs.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -83,9 +83,9 @@ affinity: {}
 
 
 app:
-  name: fireweather
+  name: climateobs
   zone: dev
-  component: fire-data-prep-job
+  component: climateobs-prep-job
 
 image:
   image_tag: 20230801-1651

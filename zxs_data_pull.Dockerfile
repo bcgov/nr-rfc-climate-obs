@@ -22,11 +22,11 @@ COPY ["scripts/python/logging.config", \
       "scripts/python/main_fwx.py", \
       "scripts/python/main_zxs.py", \
       "scripts/python/remote_ostore_sync.py", \
+      "scripts/python/run_zxs.sh", \
       "/app/"]
 
 RUN mkdir -p /app/tmp && apk update && \
-python3 -m ensurepip && \
-pip3 install --no-cache --upgrade pip && \
+chmod +x /app/run_zxs.sh && \
 . venv/bin/activate
 
 
