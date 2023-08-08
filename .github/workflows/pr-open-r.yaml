@@ -71,6 +71,22 @@ jobs:
     - uses: actions/checkout@v3
       id: checkout
 
+    # determine if there are changes in R directory
+    - uses: dorny/paths-filter@v2
+      id: r-changes
+      with:
+        filters: |
+          r:
+            - 'scripts/r/**'
+
+    - uses: dorny/paths-filter@v2
+      id: py-changes
+      with:
+        filters: |
+          py:
+            - 'scripts/python/**'
+
+    # determine if there are changes in the python directory
     - name: Verify tag
       id: CalculateImageTagstep
       shell: bash
@@ -92,6 +108,7 @@ jobs:
       env:
         IMAGE_TAG: ${{ needs.CalculateImageTags.outputs.imagetag }}
         IMAGE_TAG_PR: ${{ needs.CalculateImageTags.outputs.imagetag-pr }}
+      if: steps.r-changes.outputs.r == 'true'
       with:
         push: true # Will only build if this is not here
         file: r_py_data_prep.Dockerfile
@@ -100,8 +117,18 @@ jobs:
           ghcr.io/${{ github.repository_owner }}/firedata_pipe:${{ env.IMAGE_TAG }}
           ghcr.io/${{ github.repository_owner }}/firedata_pipe:pr-${{ github.event.number }}
 
+    # if changes haven't occured to the python path, then add tags to the existing image
+    - uses: shrink/actions-docker-registry-tag@v3
+      if: steps.r-changes.outputs.r != 'true'
+      with:
+        registry: ghcr.io
+        repository: ghcr.io/${{ github.repository_owner }}/firedata_pipe
+        target: latest
+        tags: pr-${{ github.event.number }}
+
     - name: Build and Push ZXS vertical Temperature Profile Image
       uses: docker/build-push-action@v4
+      if: steps.py-changes.outputs.py == 'true'
       env:
         IMAGE_TAG: ${{ needs.CalculateImageTags.outputs.imagetag }}
         IMAGE_TAG_PR: ${{ needs.CalculateImageTags.outputs.imagetag-pr }}
@@ -112,6 +139,14 @@ jobs:
           ghcr.io/${{ github.repository_owner }}/zxs_pipe:latest
           ghcr.io/${{ github.repository_owner }}/zxs_pipe:${{ env.IMAGE_TAG }}
           ghcr.io/${{ github.repository_owner }}/zxs_pipe:pr-${{ github.event.number }}
+
+    - uses: shrink/actions-docker-registry-tag@v3
+      if: steps.py-changes.outputs.py != 'true'
+      with:
+        registry: ghcr.io
+        repository: ghcr.io/${{ github.repository_owner }}/zxs_pipe
+        target: latest
+        tags: pr-${{ github.event.number }}
 
   # This workflow contains a single job called "build"
   DeployJob:
