@@ -3,7 +3,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.app.component }}-job
+  name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.app.component }}-fire-data-job
 spec:
   #ttlSecondsAfterFinished: 100
   suspend: true
@@ -15,15 +15,15 @@ spec:
           volumes:
           - name: firedata-volume
             persistentVolumeClaim:
-              claimName: {{ .Values.fire_data_job.fire_data_pvc_name }}
+              claimName: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.app.component }}-pvc
           containers:
           - name: firedata
             image: >-
-              {{ .Values.image.registry }}/{{ .Values.image.promote }}
+              {{ .Values.firedata_image.registry }}/{{ .Values.firedata_image.promote }}
 
             volumeMounts:
             - name: firedata-volume
-              mountPath: {{ .Values.fire_data_job.fire_data_mnt_point }}
+              mountPath: {{ .Values.climateobs_job.climateobs_mnt_point }}
 
             #Calling the shell script that was pulled by the init container
             # link to article showing how to call multiple commands in single
@@ -60,7 +60,7 @@ spec:
                     key: OBJ_STORE_SECRET
                     name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.obj_store.secret_name }}
               - name: F_WX_DATA_DIR
-                value: {{ .Values.fire_data_job.fire_data_mnt_point }}
+                value: {{ .Values.climateobs_job.climateobs_mnt_point }}
               - name: RENV_PATHS_ROOT
                 value: /data/renvcache
           restartPolicy: Never

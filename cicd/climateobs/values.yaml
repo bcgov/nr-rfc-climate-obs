@@ -1,4 +1,4 @@
-# Default values for fireweather.
+# Default values for climateobs.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -83,11 +83,11 @@ affinity: {}
 
 
 app:
-  name: fireweather
+  name: climateobs
   zone: dev
-  component: fire-data-prep-job
+  component: climateobs-prep-job
 
-image:
+firedata_image:
   image_tag: 20230801-1651
   domain: apps.silver.devops.gov.bc.ca
   registry:  ghcr.io
@@ -96,10 +96,18 @@ image:
   image_registry: image-registry.openshift-image-registry.svc:5000
   image_name: firedata_pipe
 
-fire_data_job:
-  fire_data_pvc_name: firedata-pvc
-  fire_data_pvc_size: "250Mi"
-  fire_data_mnt_point: /data
+zxsdata_image:
+  image_tag: 20230804-2016
+  domain: apps.silver.devops.gov.bc.ca
+  registry:  ghcr.io
+  promote: bcgov/zxs_pipe:20230804-2016
+  image_registry: image-registry.openshift-image-registry.svc:5000
+  image_name: zxs_pipe
+
+climateobs_job:
+  climateobs_pvc_name: firedata-pvc
+  climateobs_pvc_size: "250Mi"
+  climateobs_mnt_point: /data
 
 obj_store:
   secret_name: objectstore-secret

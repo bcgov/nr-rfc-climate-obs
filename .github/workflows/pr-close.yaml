@@ -37,7 +37,7 @@ jobs:
 
     - name: Uninstall helm chart
       run: |
-        helm uninstall fireweather-${{ env.ZONE }}
+        helm uninstall climateobs-${{ env.ZONE }}
 
   # If merged into main, then handle any image promotions
   image-promotions:
@@ -94,13 +94,13 @@ jobs:
 
         # run helm
         # ---------------------------------
-        helm upgrade --install fireweather-$zone fireweather \
+        helm upgrade --install climateobs-$zone climateobs \
         --set obj_store.bucket=${{ env.OBJ_STORE_BUCKET }} \
         --set obj_store.host=${{ vars.OBJ_STORE_HOST }} \
         --set obj_store.user_id=${{ env.OBJ_STORE_USER }} \
         --set obj_store.secret=${{ env.OBJ_STORE_SECRET }} \
-        --set image.promote=bcgov/firedata_pipe:$imagetag \
+        --set firedata_image.promote=bcgov/firedata_pipe:$imagetag \
         --set app.zone=$zone \
-        --set fire_data_job.fire_data_mnt_point=/data
+        --set climateobs_job.climateobs_mnt_point=/data
 
         echo Helm Chart Complete

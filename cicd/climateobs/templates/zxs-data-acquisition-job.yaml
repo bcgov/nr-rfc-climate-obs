@@ -1,0 +1,62 @@
+# utility job used to help with debugging database
+# and other issues
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.app.component }}-zxs-job
+spec:
+  #ttlSecondsAfterFinished: 100
+  suspend: true
+  schedule: "5 4 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          volumes:
+          - name: climateobs-volume
+            persistentVolumeClaim:
+              claimName: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.app.component }}-pvc
+          containers:
+          - name: zxsdata
+            image: >-
+              {{ .Values.zxsdata_image.registry }}/{{ .Values.zxsdata_image.promote }}
+
+            volumeMounts:
+            - name: climateobs-volume
+              mountPath: {{ .Values.climateobs_job.climateobs_mnt_point }}
+
+            #Calling the shell script that was pulled by the init container
+            # link to article showing how to call multiple commands in single
+            # call: https://stackoverflow.com/questions/33979501/kubernetes-passing-multiple-commands-to-the-container
+            # --- lines to add back into the command args..
+            # python main_fwx.py &&
+            command: ["/bin/sh"]
+            args:
+              - -c
+              - >-
+                  source /app/venv/bin/activate &&
+                  python3 main_zxs.py
+            env:
+              - name: OBJ_STORE_BUCKET
+                valueFrom:
+                  secretKeyRef:
+                    key: OBJ_STORE_BUCKET
+                    name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.obj_store.secret_name }}
+              - name: OBJ_STORE_HOST
+                valueFrom:
+                  secretKeyRef:
+                    key: OBJ_STORE_HOST
+                    name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.obj_store.secret_name }}
+              - name: OBJ_STORE_USER
+                valueFrom:
+                  secretKeyRef:
+                    key: OBJ_STORE_USER
+                    name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.obj_store.secret_name }}
+              - name: OBJ_STORE_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    key: OBJ_STORE_SECRET
+                    name: {{ .Values.app.name }}-{{ .Values.app.zone }}-{{ .Values.obj_store.secret_name }}
+              - name: ZXS_DATA_DIR
+                value: {{ .Values.climateobs_job.climateobs_mnt_point }}/zxs_data
+          restartPolicy: Never

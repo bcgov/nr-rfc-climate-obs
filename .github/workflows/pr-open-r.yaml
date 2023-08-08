@@ -26,7 +26,6 @@ on:
       - COMPLIANCE.yaml
       - docs/**
       - renv.lock
-      - scripts/python/**
   workflow_dispatch:
 
 jobs:
@@ -88,7 +87,7 @@ jobs:
         username: ${{ github.repository_owner  }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Build and Push Client Docker Image
+    - name: Build and Push Fire Weather Stations Image
       uses: docker/build-push-action@v4
       env:
         IMAGE_TAG: ${{ needs.CalculateImageTags.outputs.imagetag }}
@@ -100,6 +99,19 @@ jobs:
           ghcr.io/${{ github.repository_owner }}/firedata_pipe:latest
           ghcr.io/${{ github.repository_owner }}/firedata_pipe:${{ env.IMAGE_TAG }}
           ghcr.io/${{ github.repository_owner }}/firedata_pipe:pr-${{ github.event.number }}
+
+    - name: Build and Push ZXS vertical Temperature Profile Image
+      uses: docker/build-push-action@v4
+      env:
+        IMAGE_TAG: ${{ needs.CalculateImageTags.outputs.imagetag }}
+        IMAGE_TAG_PR: ${{ needs.CalculateImageTags.outputs.imagetag-pr }}
+      with:
+        push: true # Will only build if this is not here
+        file: zxs_data_pull.Dockerfile
+        tags: |
+          ghcr.io/${{ github.repository_owner }}/zxs_pipe:latest
+          ghcr.io/${{ github.repository_owner }}/zxs_pipe:${{ env.IMAGE_TAG }}
+          ghcr.io/${{ github.repository_owner }}/zxs_pipe:pr-${{ github.event.number }}
 
   # This workflow contains a single job called "build"
   DeployJob:
@@ -149,14 +161,14 @@ jobs:
       run: |
         cd cicd
 
-        helm upgrade --install fireweather-${{ env.ZONE }} fireweather \
+        helm upgrade --install climateobs-${{ env.ZONE }} climateobs \
         --set obj_store.bucket=${{ env.IMAGE_TAG }} \
         --set obj_store.host=${{ vars.OBJ_STORE_HOST }} \
         --set obj_store.user_id=${{ env.OBJ_STORE_USER }} \
         --set obj_store.secret=${{ env.OBJ_STORE_SECRET }} \
-        --set image.promote=bcgov/firedata_pipe:${{ env.IMAGE_TAG }} \
+        --set firedata_image.promote=bcgov/firedata_pipe:${{ env.IMAGE_TAG }} \
         --set app.zone=${{ env.ZONE }} \
-        --set fire_data_job.fire_data_mnt_point=/data
+        --set climateobs_job.climateobs_mnt_point=/data
 
 
 

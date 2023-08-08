@@ -71,9 +71,9 @@ helm upgrade --install \
 --set obj_store.secret=$OBJ_STORE_SECRET \
 --set obj_store.user_id=$OBJ_STORE_USER \
 --set obj_store.host=$OBJ_STORE_HOST \
---set fire_data_job.fire_data_mnt_point=/data \
-fireweather \
-fireweather
+--set climateobs_job.climateobs_mnt_point=/data \
+climateobs \
+climateobs
 ```
 
 ## Initiate a manual run of the cronjob
@@ -81,8 +81,14 @@ fireweather
 The cronjob is configured to run on a schedule, when testing you can initiate
 the job using this command.
 
+### init fire weather station job
 ```
 oc create job --from=cronjob/fire-data-acquisition-job "fire-data-manual-run-$(date +%s)"
+```
+
+### init zxs thermal gradient job
+```
+oc create job --from=cronjob/climateobs-dev-climateobs-prep-job-zxs-job "zxs-data-manual-run-$(date +%s)"
 ```
 
 Then monitor job via openshift console.
