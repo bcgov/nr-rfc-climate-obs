@@ -4,24 +4,24 @@ on:
   pull_request:
     types:
       - closed
-
   workflow_dispatch:
 
 jobs:
-  # Clean up OpenShift when PR closed, no conditions
+  # cleanup should run even if the pr is not merged.
   cleanup-openshift:
     name: Cleanup OpenShift
     runs-on: ubuntu-22.04
     environment: dev
 
     steps:
+    # log into the openshift cluster
     - name: Log in and set context
       uses: redhat-actions/oc-login@v1
       with:
         openshift_server_url: ${{ vars.OC_SERVER }}
         openshift_token: ${{ secrets.OC_TOKEN }}
         namespace: ${{ vars.OC_NAMESPACE }}
-
+    # calculate the zone pr-<number>
     - name: Calculate Zone
       id: calculateZone
       shell: bash
@@ -35,6 +35,7 @@ jobs:
         echo zone: $zone
         echo "ZONE=$zone" >> $GITHUB_ENV
 
+    # uninstall the helm chart from the dev cluster
     - name: Uninstall helm chart
       run: |
         helm uninstall climateobs-${{ env.ZONE }}
@@ -42,7 +43,6 @@ jobs:
   # If merged into main, then handle any image promotions
   image-promotions:
     name: Image Promotions
-    # TODO: uncomment once working
     if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-22.04
     environment: prod
@@ -50,8 +50,7 @@ jobs:
       packages: write
     steps:
 
-    # to help debug this action, logic to get the sha depending
-    # on different trigger types.
+    # get the sha for the pr
     - name: Calculate Repo Commit Sha
       id: calcRepoCommitSha
       shell: bash
@@ -65,12 +64,13 @@ jobs:
         echo sha: $sha
         echo "COMMIT_SHA=$sha" >> $GITHUB_ENV
 
-
+    # checkout the repo sha
     - uses: actions/checkout@v3
       id: checkout
       with:
         ref: ${{ env.COMMIT_SHA }}
 
+    # login to openshift cluster
     - name: Log in and set context
       uses: redhat-actions/oc-login@v1
       with:
@@ -78,6 +78,7 @@ jobs:
         openshift_token: ${{ secrets.OC_TOKEN }}
         namespace: ${{ vars.OC_NAMESPACE }}
 
+    # add the image tag 'prod'
     - uses: shrink/actions-docker-registry-tag@v3
       with:
         registry: ghcr.io
@@ -86,6 +87,7 @@ jobs:
         target: pr-${{ github.event.number }}
         tags: prod
 
+    # deploy to prod openshift
     - name: Upgrade chart
       id: upgradeHelmChart
       shell: bash
