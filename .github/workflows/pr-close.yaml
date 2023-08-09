@@ -78,12 +78,21 @@ jobs:
         openshift_token: ${{ secrets.OC_TOKEN }}
         namespace: ${{ vars.OC_NAMESPACE }}
 
-    # add the image tag 'prod'
+    # add the image tag 'prod' to the firedata_pipe image
     - uses: shrink/actions-docker-registry-tag@v3
       with:
         registry: ghcr.io
         #repository: ${{ github.repository }}/${{ matrix.package }}
-        repository: ${{ github.event.repository.name }}
+        repository: ghcr.io/${{ github.repository_owner }}/firedata_pipe
+        target: pr-${{ github.event.number }}
+        tags: prod
+
+    # add the image tag 'prod' to the zxs_pipe image
+    - uses: shrink/actions-docker-registry-tag@v3
+      with:
+        registry: ghcr.io
+        #repository: ${{ github.repository }}/${{ matrix.package }}
+        repository: ghcr.io/${{ github.repository_owner }}/zxs_pipe
         target: pr-${{ github.event.number }}
         tags: prod
 
