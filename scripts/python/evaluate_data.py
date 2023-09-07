@@ -1,5 +1,7 @@
 # this is python code that is used to reverse engineer the differences between the
 # raw / processed climate obs data
+# code is messy, but leaving here as it is a good starting place for doing some q/a
+# operations.
 
 import pandas as pd
 import datetime
@@ -14,6 +16,7 @@ def extract_site_id(site_name):
     :return: string
     """
     return site_name.split(' ')[0]
+
 
 # read in the files
 date_cols=['DATE (UTC)']

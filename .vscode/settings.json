@@ -2,7 +2,6 @@
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter"
     },
-    "python.formatting.provider": "none",
     "python.testing.pytestArgs": [
         "scripts/python"
     ],
@@ -11,7 +10,7 @@
     "autoDocstring.docstringFormat": "sphinx",
 
     "editor.rulers": [
-        85,
+        88,
         100      ],
     "files.trimTrailingWhitespace": true,
     "terminal.integrated.scrollback": 5000

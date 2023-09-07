@@ -11,6 +11,7 @@ exclusions: list(
     "docs/.*",
     "renv/.*",
     "tmp/.*",
-    "venv/.*"
+    "venv/.*",
+    "/home/linuxbrew/*"
   )
 encoding: "UTF-8"
