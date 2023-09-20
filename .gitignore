@@ -64,3 +64,4 @@ testing.dockerfile
 
 old_scripts/**
 data/**
+scripts/python/tests/test_data/**

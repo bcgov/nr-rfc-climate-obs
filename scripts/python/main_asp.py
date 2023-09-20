@@ -54,10 +54,11 @@ Comparison between R script output and python script output:
 
 import pandas as pd
 import datetime
-import requests
 import os
 import logging.config
 import logging
+import remote_ostore_sync
+import sys # NOQA
 
 LOGGER = logging.getLogger(__name__)
 
@@ -66,24 +67,68 @@ class main:
     """ties everything together into a simple run method that can be called.
     """
 
-    def __init__(self):
-        self.config = Config()
-        self.get_data = GetData(self.config)
+    def __init__(self, date_to_process=None):
+        self.config = Config(date_to_process=date_to_process)
+        self.ostore_confg = remote_ostore_sync.SyncRemoteConfig(
+            remote_date_fmt='%Y%m%d',
+            remote_location=self.config.src_url,
+            ostore_data_dir='ASP/raw',
+            ostore_dir_date_fmt='%Y%m%d',
+            local_file_path=self.config.get_local_raw_dir(),
+            local_file_date_fmt='%Y%m%d',
+            current_date=self.config.current_date
+        )
+
+        self.ostore_confg.add_file_filter(self.config.file_list)
+        sync = remote_ostore_sync.SyncRemote(self.ostore_confg)
+        sync.sync()
+        LOGGER.debug("sync process complete")
 
     def run(self):
         """downloads the data from the ministry of environment website, then processes
         it ultimately dumping the data to a csv file."""
-        self.get_data.get_data()
         self.process_data = ProcessASPData(self.config)
         self.process_data.process()
+
+    def syncProcessedData(self):
+        """Syncs the data that has been created by this script to object storage"""
+        # output_dir is the directory where the processed / transformed data is placed
+        local_dir = self.config.get_local_prepd_dir()
+        LOGGER.debug(f"local_dir for processed data: {local_dir}")
+
+        obj_dir = self.config.get_object_store_prepd_dir()
+        LOGGER.debug(f"local_dir for processed data: {obj_dir}")
+
+        sync = remote_ostore_sync.PushProcessed(src_dir=local_dir, ostore_dir=obj_dir)
+        sync.sync()
 
 
 class Config:
     """describes the configuration that is used to process the automated snow pillow
     data.  Each set of parameters is preceded with a comment describing what that
-    parameter will effect in the analysis."""
+    parameter will effect in the analysis.
 
-    def __init__(self):
+    Environment variables that can be used to override the default values are:
+        * ASP_ENV_DATA_DIR: the local directory path where the raw data downloaded from
+            the ministry of environment web site will be stored.  Local copies are
+            necessary in order to process the data.
+        * ASP_PREPD_DATA_DIR: the local directory path where the processed data that
+            has been derived from the raw data is stored.
+        * ASP_OSTORE_RAW_DATA_DIR: the object storage directory path where the raw asp
+            data will be stored.
+        * ASP_OSTORE_PREPD_DATA_DIR: the object storage directory path where the
+            processed data will be stored.
+
+        Object storage env vars: These are used to enable communication with object
+        storage:
+        * OBJ_STORE_BUCKET: the name of the object storage bucket
+        * OBJ_STORE_SECRET: the secret key for the object storage bucket
+        * OBJ_STORE_USER: the user name / client id for the object storage bucket
+        * OBJ_STORE_HOST: the host name where the object storage service is
+
+    """
+
+    def __init__(self, date_to_process=None):
         # this source url where the various files described in the parameter
         # self.file_list will be downloaded from
         self.src_url = "https://www.env.gov.bc.ca/wsd/data_searches/snow/asws/data/"
@@ -91,9 +136,12 @@ class Config:
 
         # the directory where the raw data that gets pulled from the web site will be
         # stored
-        self.env_file_dest = os.getenv("ASP_ENV_DATA_DIR", "./data/asp_env")
+        self.env_file_raw = os.getenv("ASP_ENV_DATA_DIR", "./data/asp_env")
         # the directory where the processed data will be stored
         self.env_file_prepd = os.getenv("ASP_PREPD_DATA_DIR", "./data/asp_prepd")
+
+        self.ostore_raw_dir = os.getenv("ASP_OSTORE_RAW_DATA_DIR", "ASP/raw")
+        self.ostore_prepd_dir = os.getenv("ASP_OSTORE_PREPD_DATA_DIR", "ASP/prepd")
 
         # the input column from the original data (TA.csv, SW.csv etc) that contains
         # the date times for the various observations.
@@ -103,7 +151,10 @@ class Config:
         self.date_col_name = "DATE"
 
         # calculate the current date and yesterday's date
-        self.current_date = datetime.datetime.now()
+        self.current_date = date_to_process
+        if self.current_date is None:
+            self.current_date = datetime.datetime.now()
+        # TODO: put in a type check here to make sure a datetime object was passed
         self.yesterday_date = self.current_date - datetime.timedelta(days=1)
 
         # the dateformat that will be used to format the date string in the output
@@ -173,15 +224,34 @@ class Config:
             hour=7, minute=0, second=0, microsecond=0
         )
 
-    def get_local_dir(self):
-        """returns the local directory where the data will be stored, based on the
-        date string
+    def get_local_raw_dir(self):
+        """returns the local directory where the data will be stored, that has
+        originated from the ministry of environment web site.  This is the directory
+        where the data will be stored before it is processed.
 
-        :return: local directory
+        the data returned includes the datestamp of the data
+
+        :return: local directory of the original data downloaded from the env web site
         :rtype: str
         """
         date_str = self.get_current_date_str()
-        local_dir = os.path.join(self.env_file_dest, date_str)
+        local_dir = os.path.join(self.env_file_raw, date_str)
+        LOGGER.debug(f"local_dir for raw data: {local_dir}")
+        return local_dir
+
+    def get_local_prepd_dir(self):
+        """returns the path to the local directory where the processed data will be
+        stored.
+
+        the data returned includes the datestamp of the data
+
+        :return: path to the local directory where transformed/processed data will be
+            stored
+        :rtype: str
+        """
+        date_str = self.get_current_date_str()
+        local_dir = os.path.join(self.env_file_prepd, date_str)
+        LOGGER.debug(f"local_dir for processed data: {local_dir}")
         return local_dir
 
     def get_output_file(self, yesterday=False):
@@ -214,6 +284,17 @@ class Config:
             date_format = self.date_format
         return self.current_date.strftime(date_format)
 
+    def get_object_store_prepd_dir(self, date_format=None):
+        """
+        gets the path in object storage where the prepared / transformed data should
+        be copied to.  Takes the parameter ostore_prepd_dir and adds a date string to
+        it using the property date_format to format the date in
+        """
+        date_str = self.get_current_date_str(date_format)
+        ostore_dir = os.path.join(self.ostore_prepd_dir, date_str)
+        LOGGER.debug(f"ostore_dir: {ostore_dir}")
+        return ostore_dir
+
 
 class ProcessASPData:
     """contains the code / logic that is used to calculate the min / max temperatures,
@@ -238,10 +319,7 @@ class ProcessASPData:
         output_dir_name = os.path.dirname(output_file_name)
         if not os.path.exists(output_dir_name):
             os.makedirs(output_dir_name)
-
-        # debugging
-        if os.path.exists(output_file_name):
-            os.remove(output_file_name)
+        LOGGER.debug(f"output_dir_name: {output_dir_name}")
 
         if not os.path.exists(output_file_name):
             temp_df = self.process_TA()
@@ -320,7 +398,7 @@ class ProcessASPData:
         :return: a pandas dataframe with the columns (SITE, PC)
         :rtype: pd.df
         """
-        local_dir = self.config.get_local_dir()
+        local_dir = self.config.get_local_raw_dir()
         local_file = os.path.join(local_dir, "PC.csv")
 
         # read the csv into a dataframe
@@ -372,7 +450,7 @@ class ProcessASPData:
         """temperature data get processed the same way for different output values.
 
         """
-        local_dir = self.config.get_local_dir()
+        local_dir = self.config.get_local_raw_dir()
         local_file = os.path.join(local_dir, "TA.csv")
         LOGGER.debug(f"local file: {local_file}")
 
@@ -448,7 +526,7 @@ class ProcessASPData:
             - site
             - date
             - mint_yesterday
-        :rtype: _type_
+        :rtype: pd.df
         """
         df_min_yesterday = self._process_TA(
             start_time=self.config.temperature_min_start_time_yesterday,
@@ -467,7 +545,7 @@ class ProcessASPData:
         """get the snow water data... Just retrieves the value for 7am
         for the current date.
         """
-        local_dir = self.config.get_local_dir()
+        local_dir = self.config.get_local_raw_dir()
         local_file = os.path.join(local_dir, "SW.csv")
         LOGGER.debug(f"local file: {local_file}")
 
@@ -500,37 +578,6 @@ class ProcessASPData:
         return df_format
 
 
-class GetData:
-    """a utility class that contains the logic to pull the data from the ministry of
-    environment website.
-    """
-    def __init__(self, config: Config):
-        self.config = config
-
-    def get_data(self):
-        """pulls the data for the current date.
-        """
-        for remote_file in self.config.file_list:
-            remote_url = os.path.join(self.config.src_url, remote_file)
-            LOGGER.info(f"Downloading file: {remote_url}")
-            local_dir = self.config.get_local_dir()
-            if not os.path.exists(local_dir):
-                os.makedirs(local_dir)
-            local_file = os.path.join(local_dir, remote_file)
-            LOGGER.info(f"local dest {local_file}")
-
-            if not os.path.exists(local_file):
-                r = requests.get(remote_url, allow_redirects=True)
-                if r.status_code == 200:
-                    with open(local_file, "wb") as fh:
-                        fh.write(r.content)
-                else:
-                    LOGGER.error(
-                        f"error downloading file {remote_file} from {remote_url},"
-                        + f" status code {r.status_code}"
-                    )
-
-
 if __name__ == "__main__":
     # log config
     log_config_path = os.path.join(os.path.dirname(__file__), "logging.config")
@@ -542,5 +589,15 @@ if __name__ == "__main__":
     LOGGER.setLevel(logging.DEBUG)
     LOGGER.debug(f"logging level set to {LOGGER.level}")
 
+    # be default will run the current date.  If you want to run a different date
+    # populate the date_to_process parameter in the main constructor with
+    # datetime object
+    # example:
+    #     date_to_process = datetime.datetime.strptime('20230710', '%Y%m%d')
+    #     main = main(date_to_process=date_to_process)
+    #date_to_process = datetime.datetime.strptime('20230920', '%Y%m%d')
+    #main = main(date_to_process=date_to_process)
+
     main = main()
     main.run()
+    main.syncProcessedData()
