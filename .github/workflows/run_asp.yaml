@@ -26,7 +26,7 @@ jobs:
       OBJ_STORE_BUCKET: ${{ secrets.OBJ_STORE_BUCKET }}
       OBJ_STORE_SECRET: ${{ secrets.OBJ_STORE_SECRET }}
       OBJ_STORE_USER: ${{ secrets.OBJ_STORE_USER }}
-      OBJ_STORE_HOST: ${{  config.OBJ_STORE_HOST }}
+      OBJ_STORE_HOST: ${{  vars.OBJ_STORE_HOST }}
       ASP_ENV_DATA_DIR: ./data/asp_env
       ASP_PREPD_DATA_DIR: ./data/asp_prepd
       ASP_OSTORE_RAW_DATA_DIR: ASP/raw
