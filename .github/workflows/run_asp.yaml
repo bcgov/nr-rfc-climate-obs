@@ -21,7 +21,7 @@ jobs:
         shell: bash
     name: 'Download and Process Automated Snow Pillow Data'
     runs-on: ubuntu-20.04
-    environment: RUN
+    environment: PROD
     env:
       OBJ_STORE_BUCKET: ${{ secrets.OBJ_STORE_BUCKET }}
       OBJ_STORE_SECRET: ${{ secrets.OBJ_STORE_SECRET }}
