@@ -46,7 +46,6 @@ jobs:
       name: install python dependencies
       shell: bash
       run: |
-        cd scripts/python
         pip install --upgrade pip
         pip install -r scripts/python/requirements.txt
 
