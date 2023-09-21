@@ -39,11 +39,14 @@ jobs:
       run: |
         pip install --upgrade pip
         pip install -r scripts/python/requirements.txt
+        pip install -r scripts/python/requirements-asp.txt
+
     - id: debug
       name: debug and list files
       shell: bash
       run: |
         ls -la
+
     - id: download_FWX
       name: download wildfire data and upload to s3
       shell: bash

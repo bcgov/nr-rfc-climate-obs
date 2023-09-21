@@ -1,0 +1,4 @@
+# Currently only the ASP data pipleine requires pandas.
+# installing into container for other jobs is unnecessary so
+# creating this file for only ASP specific dependencies.
+pandas==2.0.3
