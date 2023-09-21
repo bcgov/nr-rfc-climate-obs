@@ -61,3 +61,7 @@ junk/**
 scripts/r/hourly_format_orig.R
 testing2.dockerfile
 testing.dockerfile
+
+old_scripts/**
+data/**
+scripts/python/tests/test_data/**

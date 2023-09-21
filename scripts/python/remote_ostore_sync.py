@@ -67,14 +67,27 @@ def pull_s3_file(local_path_file, ostore_path):
     LOGGER.debug(f"ostore_path: {ostore_path}")
     OSTORE.get_object(local_path=local_path_file, file_path=ostore_path)
 
+def push_s3_file(local_path_file, ostore_path):
+    """This method gets called asyncronously from other methods in this module.  It
+    is required to upload data to s3.
+
+    :param local_path_file: The local path where the data is located
+    :type local_path_file: str
+    :param ostore_path: the object store path where the file should be copied to
+    :type ostore_path: str
+    """
+    LOGGER.debug(f"local_path_file: {local_path_file}")
+    LOGGER.debug(f"ostore_path: {ostore_path}")
+    OSTORE.put_object(local_path=local_path_file, ostore_path=ostore_path)
+
 class SyncRemoteConfig:
     """this class is a standard config class that is used to describe how data
     should be synced between the remote source, local paths, and object storage.
     """
     def __init__(self,
                  remote_location: str,
-                 ostore_dir: str,
                  remote_date_fmt: str,
+                 ostore_data_dir: str,
                  ostore_dir_date_fmt: str,
                  local_file_path: str,
                  local_file_date_fmt: str,
@@ -102,7 +115,7 @@ class SyncRemoteConfig:
         :type current_date: datetime.datetime
         """
         self.remote_location = remote_location
-        self.ostore_dir = ostore_dir
+        self.ostore_data_dir = ostore_data_dir
         self.remote_date_fmt = remote_date_fmt
         self.ostore_dir_date_fmt = ostore_dir_date_fmt
         self.local_file_path = local_file_path
@@ -164,11 +177,9 @@ class SyncRemoteConfig:
         """
         date_str = self.current_date.strftime(self.ostore_dir_date_fmt)
         yesterday_date_str = self.yesterday.strftime(self.remote_date_fmt)
-
-        ostore_path = self.ostore_dir.format(date_str=date_str,
-                                             yesterday_date_str=yesterday_date_str)
-        LOGGER.debug(f"ostore_path: {ostore_path}")
-        return ostore_path
+        ostore_dir = os.path.join(self.ostore_data_dir, date_str)
+        LOGGER.debug(f"ostore_path: {ostore_dir}")
+        return ostore_dir
 
     def calc_local_path(self):
         """Takes the local file path that may have date dependencies in it and
@@ -218,6 +229,7 @@ class SyncRemote:
         self.dl_job_list = []
         self.ostore_files = []
         self.ostore_pull_job_list = []
+        self.ostore_push_job_list = []
 
     def sync(self):
         root_url = self.config.calc_root_url()
@@ -253,31 +265,44 @@ class SyncRemote:
 
         contents = self._get_contents(url)
         for infile in contents.files:
-            # there is a filter, and the file is not in it
+            # apply filter: there is a filter, and the current file is not in it
             if (self.config.file_filter) and (infile not in self.config.file_filter):
                 continue
 
-            # doesn't exist in ostore
+
             LOGGER.debug(f"infile: {infile}")
             ostore_full_path = os.path.join(ostore_path, infile)
             local_path_file = os.path.join(local_file_path, infile)
             local_path_dir = os.path.dirname(local_path_file)
             file_url = os.path.join(url, infile)
 
+            # doesn't exist in ostore
             if ostore_full_path not in self.ostore_files:
+                # the file doesn't exist in ostore or locally
                 if not os.path.exists(local_path_file):
-                    # file doesn't exist in ostore or locally
+                    # the directory doesn't exist locally
                     if not os.path.exists(local_path_dir):
                         os.makedirs(local_path_dir)
 
                     LOGGER.debug(f"ostore_full_path: {ostore_full_path}")
                     LOGGER.debug(f"adding local_path_file: {local_path_file}")
+                    # add the file to the list of files to pull from the remote
                     self.dl_job_list.append((local_path_file, file_url,
                                             ostore_full_path))
+                # file exists locally, but not in ostore
+                else:
+                    LOGGER.debug(f"file exists locally but not in ostore: {local_path_file}")
+                    self.ostore_push_job_list.append((local_path_file, ostore_full_path))
+
+            # Doesn't exist locally, but does exist in ostore
             elif not os.path.exists(local_path_file):
-                # file IS in ostore but isn't available locally
                 LOGGER.debug(f"pulling from ostore path to local: {ostore_full_path}")
                 self.ostore_pull_job_list.append((local_path_file, ostore_full_path))
+            # the file exists locally, but not in ostore
+            # elif os.path.exists(local_path_file):
+            #     LOGGER.debug(f"file exists locally but not in ostore: {local_path_file}")
+            #     self.ostore_push_job_list.append((local_path_file, ostore_full_path))
+
 
         for dir in contents.directories:
             dir_url = os.path.join(url, dir)
@@ -301,8 +326,11 @@ class SyncRemote:
                 if self.ostore_pull_job_list:
                     with multiprocessing.Pool(processes=6) as p:
                         #p.map(self._get_file, self.dl_job_list)
-
                         p.starmap(pull_s3_file, self.ostore_pull_job_list)
+
+                if self.ostore_push_job_list:
+                    with multiprocessing.Pool(processes=6) as p:
+                        p.starmap(push_s3_file, self.ostore_push_job_list)
 
             except KeyboardInterrupt:
                 LOGGER.error('keyboard interupt... Exiting download pool')
@@ -367,12 +395,103 @@ class SyncRemote:
         return contents
 
     def get_ostore_files(self):
-        if self.config.ostore_dir[-1] != '/':
-            self.config.ostore_dir += '/'
+        if self.config.ostore_data_dir[-1] != '/':
+            self.config.ostore_data_dir += '/'
 
-        file_list = OSTORE.list_objects(self.config.ostore_dir, return_file_names_only=True)
+        file_list = OSTORE.list_objects(self.config.ostore_data_dir, return_file_names_only=True)
         file_list = [i for i in file_list]
 
-        LOGGER.debug(f"file_list: {file_list}")
+        LOGGER.debug(f"first 10 files of {len(list(file_list))} are: {file_list[:10]}")
         self.ostore_files = file_list
+        return self.ostore_files
 
+class PushProcessed():
+    """This class processes generated data, ie this data does not have a corresponding
+    web reference via a url from an website / federal gov data mart.
+
+    as  a result the inputs to this sync are much simpler, ie they only contain two
+    input directories.  The one from the remote ostore and the one from the local file
+    path
+    """
+
+    def __init__(self, src_dir, ostore_dir, ostore_file_filter=[]):
+        """constructor
+
+        :param src_dir: the source directory where the data should be copied from
+        :type src_dir: str
+        :param ostore_dir: the object store directory where the data should be copied
+            to
+        :type ostore_dir: str
+
+        """
+        self.src_dir = os.path.abspath(src_dir)
+        self.ostore_dir = ostore_dir
+
+        self.upload_list = []
+
+    def sync(self):
+        """main method to sync the data between the local file system and object
+        storage
+        """
+
+        local_files = self.get_local_files()
+        ostore_files = self.get_ostore_files()
+        LOGGER.debug(f"local_files: {local_files}")
+        LOGGER.debug(f"src dir: {self.src_dir}")
+
+        # iterate through each local_file to determine if it has a corresponding
+        # file in ostore
+        for local_file in local_files:
+            # add the local file path to the src_dir
+            LOGGER.debug(f"local_file: {local_file}")
+            local_dir = os.path.dirname(local_file)
+            relative_dir = os.path.relpath(local_dir, self.src_dir)
+            LOGGER.debug(f"relative_dir: {relative_dir}")
+            # this is the path to the local file with self.src_dir prefix removed
+            relative_file = os.path.join(relative_dir, os.path.basename(local_file))
+            LOGGER.debug(f"relative_file: {relative_file}")
+
+            # next calculate the path to the object store file
+            ostore_path = os.path.normpath(os.path.join(self.ostore_dir, relative_file))
+            LOGGER.debug(f"ostore_path: {ostore_path}")
+
+            if ostore_path not in ostore_files:
+                LOGGER.debug(f"ostore_path not in ostore_files: {ostore_path}")
+                self.upload_list.append((local_file, ostore_path))
+
+        if self.upload_list:
+            with multiprocessing.Pool(processes=6) as p:
+                p.starmap(push_s3_file, self.upload_list)
+
+
+
+    def get_local_files(self, input_dir=None):
+        if input_dir is None:
+            input_dir = self.src_dir
+        LOGGER.debug(f"input_dir: {input_dir}")
+        contents = os.listdir(input_dir)
+        files = []
+        for content in contents:
+            LOGGER.debug(f'content: {content}')
+            cont_full_path = os.path.join(input_dir, content)
+            if os.path.isdir(cont_full_path):
+                files.extend(self.get_local_files(cont_full_path))
+            else:
+                files.append(cont_full_path)
+            LOGGER.debug(f"files: {files}")
+        LOGGER.debug(f"files before return: {files}")
+        return files
+
+    def get_ostore_files(self, ostore_dir=None):
+        """gets a list of files that are currently in object storage for the directory
+        ostore_dir.
+        """
+        if not ostore_dir:
+            ostore_dir = self.ostore_dir
+        LOGGER.debug(f"ostore_dir pre fix: {ostore_dir} {ostore_dir[-1]}")
+        if ostore_dir[-1] != '/':
+            ostore_dir += '/'
+        LOGGER.debug(f"ostore_dir: {ostore_dir} ")
+        ostr_file_list = OSTORE.list_objects(ostore_dir, return_file_names_only=True)
+        LOGGER.debug(f"file_list: {ostr_file_list}")
+        return ostr_file_list

@@ -29,6 +29,8 @@ COPY ["./scripts/r/hourly_format.R", \
       "scripts/python/logging.config", \
       "scripts/python/main_fwx.py", \
       "scripts/python/remote_ostore_sync.py", \
+      "scripts/python/main_zxs.py", \
+      "scripts/python/main_asp.py", \
       "/app/"]
 
 # copy the renv files
