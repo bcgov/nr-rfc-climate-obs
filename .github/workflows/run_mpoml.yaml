@@ -46,7 +46,7 @@ jobs:
         pip install -r scripts/python/requirements.txt
 
     - id: run_mpoml_data_pipe
-      name: download and process asp data
+      name: download and process mpoml data
       shell: bash
       env:
         DATESTR: ${{ github.event.client_payload.idem_key }}
