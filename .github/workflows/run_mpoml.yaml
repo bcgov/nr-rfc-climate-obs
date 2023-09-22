@@ -51,4 +51,4 @@ jobs:
       env:
         DATESTR: ${{ github.event.client_payload.idem_key }}
       run: |
-        python scripts/python/main_asp.py
+        python scripts/python/main_mpoml.py
