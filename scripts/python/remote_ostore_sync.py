@@ -139,8 +139,9 @@ class SyncRemoteConfig:
             os.makedirs(local_file_path)
 
     def add_file_filter(self, file_filter: list):
-        """recieves a list of file names without any path that are targets for
-        sync, ie 3 way sync between remote/local/object storage.
+        """recieves a list of file names without any path that should be included in
+        the sync operation.  If no filter is specified then all files found on the
+        remote will be synced.
 
         if no files are added to the filter, then all the files on the remote site
         will be downloaded.  If a single or multiple files are added to the filter
@@ -150,6 +151,8 @@ class SyncRemoteConfig:
             be ignored.  If left empty then all files will be synced.
         :type file_filter: list
         """
+        if not isinstance(file_filter, list):
+            raise TypeError(f"file_filter must be a list: {file_filter}")
         self.file_filter.extend(file_filter)
 
     def calc_root_url(self):
@@ -176,7 +179,6 @@ class SyncRemoteConfig:
         :rtype: str
         """
         date_str = self.current_date.strftime(self.ostore_dir_date_fmt)
-        yesterday_date_str = self.yesterday.strftime(self.remote_date_fmt)
         ostore_dir = os.path.join(self.ostore_data_dir, date_str)
         LOGGER.debug(f"ostore_path: {ostore_dir}")
         return ostore_dir
@@ -265,6 +267,7 @@ class SyncRemote:
 
         contents = self._get_contents(url)
         for infile in contents.files:
+            LOGGER.debug(f"infile: {infile}")
             # apply filter: there is a filter, and the current file is not in it
             if (self.config.file_filter) and (infile not in self.config.file_filter):
                 continue
@@ -390,11 +393,13 @@ class SyncRemote:
                     directories.append(a_tag.text)
                 else:
                     files.append(a_tag.text)
+        LOGGER.debug(f"files: {files[:10]}...")
         contents = Contents(directories=directories, files=files)
 
         return contents
 
     def get_ostore_files(self):
+        LOGGER.info("retrieving list of files from object storage... may take a moment")
         if self.config.ostore_data_dir[-1] != '/':
             self.config.ostore_data_dir += '/'
 

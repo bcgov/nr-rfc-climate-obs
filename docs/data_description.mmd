@@ -8,14 +8,15 @@ classDiagram
   bc_fwx_format_R "1" --o "1" bc_fwx_cleanup_bat : data_pipe
   bc_fwx_cleanup_bat "1" --o "1" bc_fwx_cleanup_R : calls
 
+
   class MPOML_Download_Bat {
     -script : E:\Shared\MPOML\SRC\xml_daily.bat
     -schedule : Daily 8:15am
     -description: wget wrapper to pull data from env can datamart
     -inputs_1: https://hpfx.collab.science.gc.ca/<YYYYMMDD>/observations/xml/BC/today/today_bc_<YYYYMMDD>_e.xml
     -inputs_2: https://hpfx.collab.science.gc.ca/<YYYYMMDD>/observations/xml/BC/yesterday/yesterday_bc_<YYYYMMDD>_e.xml
-    -ouptuts_1: E:\Shared\MPOML\Today\<%YYYY%-%MT%-%DD%>\today_bc_<YYYYMMDD>_e.xml
-    -ouptuts_2: E:\Shared\MPOML\Yesterday\<%YYYY%-%MT%-%DD%>\yesterday_bc_<YYYYMMDD>_e.xml
+    -outputs_1: E:\Shared\MPOML\Today\<%YYYY%-%MT%-%DD%>\today_bc_<YYYYMMDD>_e.xml
+    -outputs_2: E:\Shared\MPOML\Yesterday\<%YYYY%-%MT%-%DD%>\yesterday_bc_<YYYYMMDD>_e.xml
   }
 
   class ASP_Daily_R {
