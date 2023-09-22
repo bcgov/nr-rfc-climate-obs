@@ -1,0 +1,54 @@
+name: Download and Process MPOML Data
+
+on:
+  # debugging while working on this action
+  push:
+    branches:
+      - "feat/11-mpoml"
+  # cron schedules are in UTC
+  # this job should run at 8.15 am pst, which translates to 3.15 pm. UTC which
+  # is the timezone that gha uses.
+  schedule:
+    - cron: '15 15 * * *'
+  workflow_dispatch:
+  repository_dispatch:
+    types: run-mpoml
+
+jobs:
+  run-mpoml:
+    defaults:
+      run:
+        shell: bash
+    name: 'Download and MPOML Data'
+    runs-on: ubuntu-20.04
+    environment: PROD
+    env:
+      OBJ_STORE_BUCKET: ${{ secrets.OBJ_STORE_BUCKET }}
+      OBJ_STORE_SECRET: ${{ secrets.OBJ_STORE_SECRET }}
+      OBJ_STORE_USER: ${{ secrets.OBJ_STORE_USER }}
+      OBJ_STORE_HOST: ${{  vars.OBJ_STORE_HOST }}
+      MPOML_DATA_DIR: ./data/mpoml
+    steps:
+    - uses: actions/checkout@v3
+      id: checkout
+      with:
+       fetch-depth: 0
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - id: install_dependencies
+      name: install python dependencies
+      shell: bash
+      run: |
+        pip install --upgrade pip
+        pip install -r scripts/python/requirements.txt
+
+    - id: run_mpoml_data_pipe
+      name: download and process mpoml data
+      shell: bash
+      env:
+        DATESTR: ${{ github.event.client_payload.idem_key }}
+      run: |
+        python scripts/python/main_mpoml.py
