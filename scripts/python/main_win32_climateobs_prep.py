@@ -6,7 +6,6 @@
 * attempts to run the various macros that do the actual imports
 
 """
-
 import win32com.client
 import logging.config
 import os.path
@@ -58,6 +57,68 @@ class ClimateObsXLUpdate:
         # the anchor text for the wildfire data
         self.FWX_data_path_identifier = 'FIRE WEATHER DATA PATH'
 
+        # the anchor text for the export paths
+        self.export_path_identifier = 'GROUPS'
+        self.rows_to_keep_identifier = ['COFFEE', 'Ensemble V']
+
+    def get_export_models(self, sheet):
+        """returns a list of the locations that data is going to be exported to
+
+        :param sheet: _description_
+        :type sheet: _type_
+        """
+        values = self.get_values(sheet=sheet,
+                    search_string=self.export_path_identifier,
+                    offsets=[[1,1],[9,3]],
+                    multiple=True)
+        LOGGER.debug(f"values: {values}")
+
+    def set_export_models(self, sheet, export_2_keep):
+        """gets a reference to a ss and a list of keywords that represent the
+        rows that should be kept, other rows will have their cells set to null
+
+        so will search the spreadsheet for the text that identifies the start of the
+        model definition section, then it will iterate over the model names.  If the
+        model name is in the keep list the calls will be retained, if not, the row
+        that defines the model will be set to null
+
+        :param sheet: _description_
+        :type sheet: _type_
+        :param export_2_keep: _description_
+        :type export_2_keep: _type_
+        """
+        # range contains the whole sheet
+        sheet_range = self.get_sheet_max_range(sheet)
+        col_row_list = self.get_cell_address(range=sheet_range,
+                                             search_string=self.export_path_identifier)
+        LOGGER.debug(f"col_row_list {col_row_list}")
+        offset_cnt = 0
+        row_list = list(range(1, 9))
+        for col_offset in row_list:
+            # always adding 1 to offset values to account for excel being base 1, but
+            # lists in python being base 0
+            LOGGER.debug(f"col_offset: {col_offset} {type(col_offset)}")
+            col_offset = int(col_offset)
+            cell_address_1 = col_row_list[0] + 1 + col_offset
+            cell_address_2 = col_row_list[1] + 1 + 1
+            model_name = sheet.Cells(cell_address_1, cell_address_2).Value
+            LOGGER.debug(f"val: {model_name} {cell_address_1}, {cell_address_2}")
+            if model_name not in export_2_keep:
+                # delete values in this row.  range defines how many cols in the row
+                # to zero out / null out
+                for col_null_offset in range(0, 11):
+                    col_ref_2_del = cell_address_2 + col_null_offset
+                    model_name = sheet.Cells(cell_address_1, col_ref_2_del).Value
+                    LOGGER.debug(f"DELETE: {model_name} {col_ref_2_del}")
+                    sheet.Cells(cell_address_1, col_ref_2_del).Value = None
+
+            #sheet.Cells(col_row_list[0] + 1 + offset[0], col_row_list[1] + 1 + offset[1]).Value = values[offset_cnt]
+            #offset_cnt += 1
+
+
+
+
+
     def get_workbook(self):
         LOGGER.info("opening xl workbook... may take a moment")
         xl = win32com.client.gencache.EnsureDispatch('Excel.Application')
@@ -91,8 +152,10 @@ class ClimateObsXLUpdate:
         return values
 
     def set_FWX_paths(self, sheet, new_path):
+
         values = [new_path]
         offsets = [[1, 0]]
+
         self.set_values(sheet=sheet,
                         search_string=self.FWX_data_path_identifier,
                         offsets=offsets,
@@ -145,7 +208,6 @@ class ClimateObsXLUpdate:
                         offsets=offsets,
                         values=values)
 
-
     def update_ss(self):
         """
         pulls a copy of the ss, updates paths, and runs the import process
@@ -184,7 +246,9 @@ class ClimateObsXLUpdate:
         self.get_FWX_paths(sheet=ops_sheet)
         self.set_FWX_paths(sheet=ops_sheet, new_path=fwx_path)
 
-
+        # update the model data
+        #self.get_export_models(sheet=ops_sheet)
+        self.set_export_models(sheet=ops_sheet, export_2_keep=self.rows_to_keep_identifier)
 
     def set_values(self, sheet, search_string, offsets, values):
         """Used to update values in the spreadsheet.  Starts by searching the suppplied
@@ -214,7 +278,7 @@ class ClimateObsXLUpdate:
             will raise a valueError if this is not the case
         :type values: list(str)
         """
-        ops_sheet = self.get_operations_ss()
+        #ops_sheet = self.get_operations_ss()
         range = self.get_sheet_max_range(sheet)
         col_row_list = self.get_cell_address(range=range,
                                              search_string=search_string)
@@ -222,21 +286,68 @@ class ClimateObsXLUpdate:
         for offset in offsets:
             # always adding 1 to offset values to account for excel being base 1, but
             # lists in python being base 0
-            ops_sheet.Cells(col_row_list[0] + 1 + offset[0], col_row_list[1] + 1 + offset[1]).Value = values[offset_cnt]
+            sheet.Cells(col_row_list[0] + 1 + offset[0], col_row_list[1] + 1 + offset[1]).Value = values[offset_cnt]
             offset_cnt += 1
 
         # # adding 1 to each value because the first cell in excel is 1,1
         # ops_sheet.Cells(col_row_list[0] + 1 + 1,  col_row_list[1] + 1).Value = today_path
         # ops_sheet.Cells(col_row_list[0] + 1 + 2,  col_row_list[1] + 1).Value = yesterday_path
 
-    def get_values(self, sheet, search_string, offsets):
+    def get_values(self, sheet, search_string, offsets, multiple=False):
+        """used to extract values out of a spreadsheet.  Recieves a worksheet reference
+        and a seach string.  The code will search for the search string
+        location in the spreadsheet.  Having located the search string if multiple is
+        set to false will search for the location of a cell relative to the search
+         string.  if offsets of [1,0] are provided then it will return the value that
+         is 1 row below the search string.  if offset of [0,1] are provided then will
+         return the cell immediately to the right of the search string.  If you want
+         multiple values returned then specify their offsets in a list... example for
+         the two cells directly below the anchor point [[1,0], 2,0]]
+
+         if multiple is 'True' then the offsets should take the following syntax:
+
+         [[start row offset, start column offset], end row offset, end column offset]]
+
+
+        :param sheet: a reference to an xl worksheet object
+        :type sheet: worksheet
+        :param search_string: the search string to find in the sheet
+        :type search_string: str
+        :param offsets: the offset locations to return based on the location of the
+            anchor text.
+        :type offsets: list[int]
+        :param multiple: bool, defaults to False
+        :type multiple: bool, optional
+        :return: the values associated with the requested offsets / anchor text location
+        :rtype: variable (whatever is in the cells)
+        """
         range = self.get_sheet_max_range(sheet)
         col_row_list = self.get_cell_address(range=range,
                                              search_string=search_string)
         values = []
-        for offset in offsets:
-            value = range.Value[col_row_list[0] + offset[0]][col_row_list[1] + offset[1]]
-            values.append(value)
+        LOGGER.debug(f'offsets: {offsets}')
+        LOGGER.debug(f'col_row_list: {col_row_list}')
+        if multiple == True:
+            # if multiple the list must take the form:
+            # [start row, start column], [end row, end_column]]
+            # the returned data structure will take that form
+
+            start_row_offset = offsets[0][0] + col_row_list[0]
+            start_col_offset = offsets[0][1] + col_row_list[1]
+            end_row_offset = offsets[1][0] + col_row_list[0]
+            end_col_offset =  offsets[1][1] + col_row_list[1]
+
+
+            row_values = range.Value[start_row_offset:end_row_offset]
+            for rows in row_values:
+                LOGGER.debug(f"rows: {rows}")
+                subvals = rows[start_col_offset:end_col_offset]
+                LOGGER.debug(f"subvals: {subvals}")
+                values.append(subvals)
+        else:
+            for offset in offsets:
+                value = range.Value[col_row_list[0] + offset[0]][col_row_list[1] + offset[1]]
+                values.append(value)
         return values
 
     def get_ASP_paths(self, sheet):
