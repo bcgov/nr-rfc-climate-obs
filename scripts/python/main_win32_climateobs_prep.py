@@ -52,7 +52,11 @@ class ClimateObsXLUpdate:
         # ASP data
         self.ASP_data_path_identifier = "ASP DATA PATH"
 
+        # the anchor text for the zxs data
+        self.ZXS_data_path_identifier = 'ZXS-850 DATA PATH'
 
+        # the anchor text for the wildfire data
+        self.FWX_data_path_identifier = 'FIRE WEATHER DATA PATH'
 
     def get_workbook(self):
         LOGGER.info("opening xl workbook... may take a moment")
@@ -77,8 +81,22 @@ class ClimateObsXLUpdate:
                         search_string=self.MPOML_data_path_identifier,
                         offsets=[[1,0],[2,0]])
         LOGGER.debug(f"values for MPOML: {values}")
-
         return values
+
+    def get_FWX_paths(self, sheet):
+        values = self.get_values(sheet=sheet,
+                        search_string=self.FWX_data_path_identifier,
+                        offsets=[[1,0]])
+        LOGGER.debug(f"values for MPOML: {values}")
+        return values
+
+    def set_FWX_paths(self, sheet, new_path):
+        values = [new_path]
+        offsets = [[1, 0]]
+        self.set_values(sheet=sheet,
+                        search_string=self.FWX_data_path_identifier,
+                        offsets=offsets,
+                        values=values)
 
     def set_MPOML_paths(self, sheet, today_path, yesterday_path):
         """Will replace existing values for the MPOML data, for today, and yesterday
@@ -112,6 +130,22 @@ class ClimateObsXLUpdate:
                         offsets=offsets,
                         values=values)
 
+    def get_ZXS_paths(self, sheet):
+        values = self.get_values(sheet=sheet,
+                        search_string=self.ZXS_data_path_identifier,
+                        offsets=[[1,0]])
+        LOGGER.debug(f"values for ZXS: {values}")
+        return values
+
+    def set_ZXS_paths(self, sheet, new_path):
+        values = [new_path]
+        offsets = [[1, 0]]
+        self.set_values(sheet=sheet,
+                        search_string=self.ZXS_data_path_identifier,
+                        offsets=offsets,
+                        values=values)
+
+
     def update_ss(self):
         """
         pulls a copy of the ss, updates paths, and runs the import process
@@ -139,6 +173,18 @@ class ClimateObsXLUpdate:
         # now update
         asp_path = r'Z:\home\kjnether\rfc_proj\climate_obs\data\asp_prepd\20230920'
         self.set_ASP_paths(sheet=ops_sheet, new_path=asp_path)
+
+        # zxs data:
+        zxs_path = r'Z:\home\kjnether\rfc_proj\climate_obs\data\zxs\raw\20230924'
+        self.get_ZXS_paths(sheet=ops_sheet)
+        self.set_ZXS_paths(sheet=ops_sheet, new_path=zxs_path)
+
+        # wildfire data:
+        fwx_path = 'Z:\home\kjnether\rfc_proj\climate_obs\data\fwx\raw'
+        self.get_FWX_paths(sheet=ops_sheet)
+        self.set_FWX_paths(sheet=ops_sheet, new_path=fwx_path)
+
+
 
     def set_values(self, sheet, search_string, offsets, values):
         """Used to update values in the spreadsheet.  Starts by searching the suppplied
