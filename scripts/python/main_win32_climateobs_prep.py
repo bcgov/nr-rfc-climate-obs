@@ -10,6 +10,7 @@ import win32com.client
 import logging.config
 import os.path
 import datetime
+import sys
 
 # setup logging
 module_name = os.path.splitext(os.path.basename(__file__))[0]
@@ -242,7 +243,7 @@ class ClimateObsXLUpdate:
         self.set_ZXS_paths(sheet=ops_sheet, new_path=zxs_path)
 
         # wildfire data:
-        fwx_path = 'Z:\home\kjnether\rfc_proj\climate_obs\data\fwx\raw'
+        fwx_path = r'Z:\home\kjnether\rfc_proj\climate_obs\data\fwx\raw'
         self.get_FWX_paths(sheet=ops_sheet)
         self.set_FWX_paths(sheet=ops_sheet, new_path=fwx_path)
 
@@ -286,7 +287,15 @@ class ClimateObsXLUpdate:
         for offset in offsets:
             # always adding 1 to offset values to account for excel being base 1, but
             # lists in python being base 0
-            sheet.Cells(col_row_list[0] + 1 + offset[0], col_row_list[1] + 1 + offset[1]).Value = values[offset_cnt]
+            cell_reference = sheet.Cells(col_row_list[0] + 1 + offset[0], col_row_list[1] + 1 + offset[1])
+            cell_reference.Value = values[offset_cnt]
+
+            # now update the hypertext link value
+            cell_address = cell_reference.GetAddress(RowAbsolute=False, ColumnAbsolute=False)
+            LOGGER.debug(f"cell address: {cell_address}")
+
+            sheet.Hyperlinks.Add(Anchor=sheet.Range(cell_address),
+                                 Address=values[offset_cnt])
             offset_cnt += 1
 
         # # adding 1 to each value because the first cell in excel is 1,1
@@ -464,6 +473,7 @@ if __name__ == '__main__':
                     'ClimateDataOBS_2023.xlsm'))
 
     path_to_xl = r'Z:\home\kjnether\rfc_proj\climate_obs\old_scripts\ClimateDataOBS_2023.xlsm'
+    path_to_xl = r"C:\Kevin\ClimateDataOBS_2023.xlsm"
     climate_obs = ClimateObsXLUpdate(climate_obs_xl_path=path_to_xl)
     climate_obs.update_ss()
 
