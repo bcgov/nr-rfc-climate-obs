@@ -17,7 +17,6 @@ require(tibble)
 require(fs)
 require(logger)
 
-
 logger <- layout_glue_generator(
     format <-
     "{pid}/{namespace}/{fn} {time} {level}: {msg}")
@@ -27,8 +26,10 @@ logger::log_threshold(DEBUG)
 
 start.time <- Sys.time()
 
+input_date_str <- format(start.time,"%Y%m%d")
+
 DATA_DIR = Sys.getenv("F_WX_DATA_DIR")
-RAW_DATA_DIR <- fs::path(DATA_DIR, "raw", "/")
+RAW_DATA_DIR <- fs::path(DATA_DIR, "raw", "/", input_date_str)
 OUTPUT_DATA_DIR <- fs::path(DATA_DIR, "extracts", "/")
 logger::log_debug("DATA_DIR: {DATA_DIR}")
 logger::log_debug("OUTPUT_DATA_DIR: {OUTPUT_DATA_DIR}")
@@ -38,7 +39,6 @@ outputpath <- fs::path(OUTPUT_DATA_DIR, output_date_str)
 output_file <- fs::path(outputpath, paste0(output_date_str,".csv"))
 
 output_hourly_weather = fs::path(OUTPUT_DATA_DIR, "HourlyWeatherAllFields_WA.txt")
-
 
 if (!file.exists(OUTPUT_DATA_DIR)){
   dir.create(OUTPUT_DATA_DIR)

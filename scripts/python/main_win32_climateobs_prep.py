@@ -239,7 +239,8 @@ class ClimateObsXLUpdate:
         self.set_ZXS_paths(sheet=ops_sheet, new_path=zxs_path)
 
         # wildfire data:
-        fwx_path = r'Z:\home\kjnether\rfc_proj\climate_obs\data\fwx\raw'
+        # data\fwx\extracts\2023-09-26\2023-09-26.csv
+        fwx_path = r'Z:\home\kjnether\rfc_proj\climate_obs\data\fwx\extracts\2023-09-26'
         self.get_FWX_paths(sheet=ops_sheet)
         self.set_FWX_paths(sheet=ops_sheet, new_path=fwx_path)
 
@@ -372,7 +373,7 @@ class ClimateObsXLUpdate:
         return values
 
     def set_ASP_paths(self, sheet, new_path):
-        """updates the automated snow pillow paths
+        """updates the automated snow pillow paths with the supplied path
 
         :param sheet: _description_
         :type sheet: _type_
@@ -387,6 +388,11 @@ class ClimateObsXLUpdate:
     def get_sheet_max_range(self, sheet):
         """
         returns a range object that encapsulates all the data in the sheet
+
+        :param sheet: xl worksheet object to find the max range for
+        :type: xl worksheet
+        :return: a range object that contains the extent of the input sheet
+        :rtype: xl range
         """
         startCell = sheet.Cells(1, 1)
         startCellAddress = startCell.GetAddress(RowAbsolute=False, ColumnAbsolute=False)
@@ -400,18 +406,13 @@ class ClimateObsXLUpdate:
     def get_current_date(self, sheet):
         """
         Goes into the sheet, finds value that aligns with CURRENT DATE:
-        and returns that value:
-        """
-        # range = self.get_sheet_max_range(sheet)
-        # col_row_list = self.get_cell_address(range=range,
-        #                                      search_string=self.current_date_identifier)
-        # LOGGER.debug(f"location of cell: {col_row_list}")
-        # # assuming that the value is the next cell over to the right
-        # cell_value = range.Value[col_row_list[0]][col_row_list[1] + 1]
-        # LOGGER.debug(f"number of row: {len(range.Value)}")
-        # LOGGER.debug(f"cell_value: {cell_value}, {type(cell_value)}")
-        # return cell_value
+        and returns that value
 
+        :param sheet: an xl worksheet reference
+        :type sheet: xl worksheet
+        :return: returns the date value that is contained in the current date cell
+        :rtype: str
+        """
         values = self.get_values(sheet=sheet,
                                  search_string=self.current_date_identifier,
                                  offsets=[[0,1]])
@@ -448,6 +449,14 @@ class ClimateObsXLUpdate:
         return location
 
     def get_operations_ss(self):
+        """
+        finds the 'OPERATIONS' sheet from the workbook and returns a reference to that
+        object
+
+        :return: reference to the xl worksheet that contains the OPERATIONS data. Its
+                 the sheet with all the file paths in it.
+        :rtype: xl worksheet
+        """
         #sheet_names = [sheet.Name for sheet in wb.Sheets]
         self.xl_wb.Worksheets(self.operation_sheet_name).Activate()
         sheet = self.xl_wb.Worksheets(self.operation_sheet_name)
@@ -470,6 +479,7 @@ if __name__ == '__main__':
 
     path_to_xl = r'Z:\home\kjnether\rfc_proj\climate_obs\old_scripts\ClimateDataOBS_2023.xlsm'
     path_to_xl = r"C:\Kevin\ClimateDataOBS_2023.xlsm"
+
     climate_obs = ClimateObsXLUpdate(climate_obs_xl_path=path_to_xl)
     climate_obs.update_ss()
 
