@@ -30,7 +30,7 @@ that aquires the data from hpfx needs to be run before this script.  (see script
 Once the expected data exists run:
 
 ```
-docker run -e F_WX_DATA_DIR=/data/ -v /home/kjnether/rfc_proj/climate_obs/tmp:/data -it rdataprep
+docker run -e F_WX_DATA_DIR=/data/fwx -v /home/kjnether/rfc_proj/climate_obs/data:/data -it rdataprep Rscript hourly_format.R
 ```
 
 # Docker - ZXS
