@@ -63,7 +63,9 @@ exclude = [
     "old_scripts",
     "junk",
     "docs",
-    "cicd"
+    "cicd",
+    "virtualenvs",
+    "usr/lib"
 ]
 
 # Same as Black.

@@ -4,13 +4,16 @@ Will pull the data for the fire weather stations from the wildfire data mart api
 
 
 import datetime
+import json
 import logging.config
 import os.path
 import pprint
 from typing import Union
 
+import fwx_typedicts
 import requests
 
+# setting up the logging
 cur_path = os.path.dirname(__file__)
 logger_name = os.path.basename(__file__).split('.')[0]
 print(logger_name)
@@ -22,22 +25,40 @@ LOGGER.debug(f"cur_path: {cur_path}")
 
 class WildfireAPI:
 
-    def __init__(self, url='https://bcwsapi.nrs.gov.bc.ca/wfwx-datamart-api/v1'):
+    def __init__(self, url='https://bcwsapi.nrs.gov.bc.ca/wfwx-datamart-api/v1',
+                 end_date:datetime=None,
+                 start_date:datetime=None):
+        """the constructor method for the class, setup to recieve some parameters that
+        define what data should be retrieved
+
+        :param url: _description_, defaults to 'https://bcwsapi.nrs.gov.bc.ca/wfwx-datamart-api/v1'
+        :type url: str, optional
+        :param date_toquery: a datetime object that defines the data that should be
+            retrieved from the api, defaults to None
+        :type date_toquery: datetime, optional
+        """
         self.api_url = url
-        self.cur_date = datetime.datetime.now()
+        self.standard_date_time_end = end_date
+        self.standard_date_time_start = start_date
+        if not self.standard_date_time_end:
+            self.standard_date_time_end = datetime.datetime.now()
+            self.standard_date_time_end = self.standard_date_time_end.replace(
+                hour=8,
+                minute=0,
+                second=0,
+                microsecond=0)
+
+        if not self.standard_date_time_start:
+            self.standard_date_time_start = (self.standard_date_time_end -
+                                             datetime.timedelta(days=1))
+            self.standard_date_time_start = self.standard_date_time_start.replace(
+                hour=9,
+                minute=0,
+                second=0,
+                microsecond=0)
+
+
         self.date_time_query_fmt = '%Y%m%d%H'
-
-        self.standard_date_time_start = self.cur_date - datetime.timedelta(days=1)
-        self.standard_date_time_start = self.standard_date_time_start.replace(
-                                                              hour=9,
-                                                              minute=0,
-                                                              second=0,
-                                                              microsecond=0)
-
-        self.standard_date_time_end = self.cur_date.replace(hour=8,
-                                                            minute=0,
-                                                            second=0,
-                                                            microsecond=0)
 
         # the api looks like it reports the weather data up to the time in the timestamp
         # however the csv reports the same record with a time stamp that contains
@@ -86,15 +107,19 @@ class WildfireAPI:
         """This is the main entry point for the class.  It will get all the stations,
         then iterate over each station and retrieve the data associated with that
         station.  The data for each station gets cached in memory.  Once all the data
-        has been retrieved it gets written to a file.
+        has been retrieved it gets written to a file.  The name of the file comes from
+        the `out_file` parameter.
 
-        :param out_file: _description_, defaults to None
-        :type out_file: _type_, optional
-        :return: _description_
-        :rtype: _type_
+        If no out_file parameter is provided it will look to the environment variable
+        F_WX_DATA_DIR.  If that parameter is not set it will default to ./data/fwx
+
+        :param out_file: If you want to override the default location of the outfile it
+            can be provided here
+        :type out_file: str, optional
         """
 
         station_codes = self.get_station_codes()
+
         LOGGER.debug(f"station_codes: {station_codes}")
         station_hourlies = []
         cnt = 0
@@ -106,6 +131,8 @@ class WildfireAPI:
             for station_code in station_codes:
                 LOGGER.debug(f"working on station: {station_code}")
                 station_hourly = self.get_hourlies(station_code)
+                #self.pprint(station_hourly, output_json=False)
+
                 station_hourlies.extend(station_hourly)
                 cnt += 1
             if out_file:
@@ -119,11 +146,13 @@ class WildfireAPI:
         else:
             LOGGER.info(f"Doing nothing, the output file: {out_file} already exists")
 
-    def get_hourly_row(self, station_hourly):
+    def get_hourly_row(self, station_hourly: dict) -> str:
         """gets the hourly row for a given station
 
-        :param station_hourly: _description_
-        :type station_hourly: _type_
+        :param station_hourly: dictionary with the station hourly data
+        :type station_hourly: dict
+        :return: extracts the values from the station_hourly dict and returns a comma
+            delimited string
         """
         hourly_row = []
         station_hourly['weatherTimestamp'] = int(station_hourly['weatherTimestamp']) + \
@@ -139,7 +168,7 @@ class WildfireAPI:
         hourly_row_str = ','.join(hourly_row_str_vals) + '\n'
         return hourly_row_str
 
-    def get_station_codes(self):
+    def get_station_codes(self) -> list[str]:
         """queries all the stations and returns a list of only the station codes sorted
         in numeric order
 
@@ -158,7 +187,7 @@ class WildfireAPI:
         LOGGER.debug(f"station codes: {station_codes} {len(station_codes)}")
         return station_codes
 
-    def get_stations(self):
+    def get_stations(self) -> list[fwx_typedicts.Station]:
         """hits the api and get a list of stations, reformats the json into a dict
         where the key is the station code
 
@@ -166,27 +195,11 @@ class WildfireAPI:
         :rtype: _type_
         """
         url = f'{self.api_url}/stations'
-        stations = self.get_all_pages(url, {})
+        stations = self.get_all_pages(url)
         LOGGER.debug(f"number of stations: {len(stations)}")
         return stations
 
-    def get_stations_data(self) -> list:
-        """gets a list of stations, then iterates through each station retrieving the
-        data associated with each station.  Returns a list of all the data for all the
-        stations
-
-        :return: a list with all the stations data
-        :rtype: list
-        """
-        stations = self.get_stations()
-        all_station_data = []
-        for station in stations:
-            station_data = self.get_station()
-            all_station_data.extend(station_data['collection'])
-        return all_station_data
-
-
-    def get_station(self, station_code:str) -> dict:
+    def get_station(self, station_code:str) -> fwx_typedicts.WeatherStation:
         """retrieves the data associated with a specific weather station
 
         :param station_code: the station code who's data should be retrieved
@@ -199,13 +212,18 @@ class WildfireAPI:
         r_data = r.json()
         return r_data
 
-    def get_all_pages(self, url, params={}):
-        """gets all pages for a given url and query
+    def get_all_pages(self, url: str, params={}) -> list[dict]:
+        """gets all pages for a given url and query, for each page extracts the values
+        in the 'collection' property, and adds all the elements to a list that is
+        ultimately returned
 
         :param url: an api url to hit that potentially has multiple pages
         :type url: str
         :param query: any parameters that should be added to the url request
         :type query: _type_
+        :return: a list of all the elements in the 'collection' property for the url
+            end point
+        :rtype: list
         """
         params['pageNumber'] = 1
         r = requests.get(url, params=params)
@@ -223,7 +241,7 @@ class WildfireAPI:
                 all_pages.extend(r_data['collection'])
         return all_pages
 
-    def get_hourlies(self, station_code):
+    def get_hourlies(self, station_code: str) -> list[fwx_typedicts.WeatherStation]:
         """
         needs to get the last 24 hours of data for all stations
 
@@ -265,15 +283,24 @@ class WildfireAPI:
                 all_pages.extend(r_data['collection'])
         return all_pages
 
-    def pprint(self, data_dict):
+    def pprint(self, data_dict: dict, output_json=False):
         """gets data_dict struct, usually a python dict that originated from json and
         pretty prints it
 
+        Used for debugging / viewing the results of various api queries
+
         :param data_dict: the input data struct to be pretty printed
         :type data_dict: dict
+        :param output_json: if true will print json string instead of python data struct
+            as string
+        :type output_json: bool, optional
         """
-        pp = pprint.PrettyPrinter(indent=4)
-        pp.pprint(data_dict)
+        if json:
+            data_dict_json = json.dumps(data_dict, indent=4, sort_keys=True)
+            print(data_dict_json)
+        else:
+            pp = pprint.PrettyPrinter(indent=4)
+            pp.pprint(data_dict)
 
     def get_file_path(self) -> str:
         """
@@ -286,7 +313,7 @@ class WildfireAPI:
         :rtype: str
         """
         fwx_root = os.getenv('F_WX_DATA_DIR', './data/fwx')
-        file_date_str = self.cur_date.strftime('%Y-%m-%d')
+        file_date_str = self.standard_date_time_end.strftime('%Y-%m-%d')
         fwx_out_dir = os.path.join(fwx_root, 'extracts', file_date_str)
         if not os.path.exists(fwx_out_dir):
             os.makedirs(fwx_out_dir)
