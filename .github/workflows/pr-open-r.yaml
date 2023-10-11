@@ -9,27 +9,27 @@ on:
 
 
   # disable the build as its not required anymore... Jobs are going to run as
-  # gha.
-  # pull_request:
-  #   # debug: remove the dev,putting build action on non existent branches for debug
-  #   branches: ['main']
-  #   types: ['opened', 'reopened', 'edited', 'synchronize']
-  #   paths-ignore:
-  #     - .vscode/**
-  #     - .flake8
-  #     - .lintr
-  #     - .RData
-  #     - .Rhistory
-  #     - .Rprofile
-  #     - .gitignore
-  #     - LICENSE
-  #     - readme.md
-  #     - code_of_conduct.md
-  #     - .flake8
-  #     - COMPLIANCE.yaml
-  #     - docs/**
-  #     - renv.lock
-  # workflow_dispatch:
+  # gha.  Disabling by setting to run on a non existent branch
+  pull_request:
+    # debug: remove the dev,putting build action on non existent branches for debug
+    branches: ['branch_that_doesnt_exist']
+    types: ['opened', 'reopened', 'edited', 'synchronize']
+    paths-ignore:
+      - .vscode/**
+      - .flake8
+      - .lintr
+      - .RData
+      - .Rhistory
+      - .Rprofile
+      - .gitignore
+      - LICENSE
+      - readme.md
+      - code_of_conduct.md
+      - .flake8
+      - COMPLIANCE.yaml
+      - docs/**
+      - renv.lock
+  workflow_dispatch:
 
 jobs:
   # calculate the image tag / used to tag image and then for the
