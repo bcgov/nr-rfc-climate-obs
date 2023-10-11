@@ -4,15 +4,15 @@ local storage and then to object storage.
 
 """
 
+import datetime
+import logging
+import multiprocessing
+import os
+import time
+
+import bs4
 import NRUtil.NRObjStoreUtil
 import requests
-import logging
-import bs4
-import os
-import multiprocessing
-import time
-import datetime
-
 
 LOGGER = logging.getLogger(__name__)
 OSTORE = NRUtil.NRObjStoreUtil.ObjectStoreUtil()
@@ -470,12 +470,17 @@ class PushProcessed():
 
 
 
-    def get_local_files(self, input_dir=None):
+    def get_local_files(self, input_dir:str=None):
         if input_dir is None:
             input_dir = self.src_dir
         LOGGER.debug(f"input_dir: {input_dir}")
-        contents = os.listdir(input_dir)
         files = []
+        try:
+            contents = os.listdir(input_dir)
+        except FileNotFoundError:
+            # if the file isn't found then just return an empty list
+            return files
+
         for content in contents:
             LOGGER.debug(f'content: {content}')
             cont_full_path = os.path.join(input_dir, content)
@@ -500,3 +505,18 @@ class PushProcessed():
         ostr_file_list = OSTORE.list_objects(ostore_dir, return_file_names_only=True)
         LOGGER.debug(f"file_list: {ostr_file_list}")
         return ostr_file_list
+
+    def ostore_file_exists(self, ostore_file_path:str):
+        """checks to see if a file exists in object storage
+
+        :param ostore_path: the path to the file in object storage
+        :type ostore_path: str
+        :return: True if the file exists in object storage, False otherwise
+        :rtype: bool
+        """
+        ostore_dir = os.path.dirname(ostore_file_path)
+        ostore_files = self.get_local_files(input_dir=ostore_dir)
+        if ostore_file_path in ostore_files:
+            return True
+        else:
+            return False
