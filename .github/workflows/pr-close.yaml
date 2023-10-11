@@ -1,11 +1,12 @@
 name: Pull Request Closed
 
 # disable this action as going to run stuff as gha
-# on:
-#   pull_request:
-#     types:
-#       - closed
-#   workflow_dispatch:
+on:
+  pull_request:
+    branches: ['branch_that_doesnt_exist']
+    types:
+      - closed
+  workflow_dispatch:
 
 jobs:
   # cleanup should run even if the pr is not merged.
