@@ -234,17 +234,17 @@ class ClimateObsXLUpdate:
         path = self.get_ASP_paths(sheet=ops_sheet)
         LOGGER.debug(f"current path for asp data: {path}")
         # now update
-        asp_path = r'Z:\home\kjnether\rfc_proj\climate_obs\data\asp_prepd\20230920'
+        asp_path = r'Z:\home\kjnether\rfc_proj\climate_obs\data\asp_prepd\20231011'
         self.set_ASP_paths(sheet=ops_sheet, new_path=asp_path)
 
         # zxs data:
-        zxs_path = r'Z:\home\kjnether\rfc_proj\climate_obs\data\zxs\raw\20230924'
+        zxs_path = r'Z:\home\kjnether\rfc_proj\climate_obs\data\zxs\raw\20231010'
         self.get_ZXS_paths(sheet=ops_sheet)
         self.set_ZXS_paths(sheet=ops_sheet, new_path=zxs_path)
 
         # wildfire data:
         # data\fwx\extracts\2023-09-26\2023-09-26.csv
-        fwx_path = r'Z:\home\kjnether\rfc_proj\climate_obs\data\fwx\extracts\2023-09-26'
+        fwx_path = r'Z:\home\kjnether\rfc_proj\climate_obs\data\fwx\extracts\2023-10-11'
         self.get_FWX_paths(sheet=ops_sheet)
         self.set_FWX_paths(sheet=ops_sheet, new_path=fwx_path)
 

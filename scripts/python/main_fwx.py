@@ -18,9 +18,10 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.info(f"starting {__name__}")
 
 # setting up the time window for pulling data
-end_date = datetime.datetime.now()
+default_days_from_present = int(os.getenv('DEFAULT_DAYS_FROM_PRESENT', 0))
+end_date = datetime.datetime.now() - datetime.timedelta(days=default_days_from_present)
 end_date = end_date.replace(
-                hour=9,
+                hour=8,
                 minute=0,
                 second=0,
                 microsecond=0)
@@ -28,8 +29,8 @@ end_date = end_date.replace(
 # setting up the path to the output data for the local data
 local_file_date_fmt = '%Y-%m-%d'
 date_str = end_date.strftime(local_file_date_fmt)
-local_file_path_root = os.getenv('F_WX_DATA_DIR', f'./data/fwx')
-local_path = os.path.join(local_file_path_root, 'extracts', date_str)
+local_file_path_root = os.getenv('F_WX_DATA_DIR', f'./data/fwx/extracts')
+local_path = os.path.join(local_file_path_root, date_str)
 if not os.path.exists(local_path):
     os.makedirs(local_path)
 local_file_path = os.path.join(local_path, f'{date_str}.csv')
