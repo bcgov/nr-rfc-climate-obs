@@ -318,9 +318,9 @@ class WildfireAPI:
         :return: the path to where the file should be saved
         :rtype: str
         """
-        fwx_root = os.getenv('F_WX_DATA_DIR', './data/fwx')
+        fwx_root = os.getenv('F_WX_DATA_DIR', './data/fwx/extracts')
         file_date_str = self.standard_date_time_end.strftime('%Y-%m-%d')
-        fwx_out_dir = os.path.join(fwx_root, 'extracts', file_date_str)
+        fwx_out_dir = os.path.join(fwx_root, file_date_str)
         if not os.path.exists(fwx_out_dir):
             os.makedirs(fwx_out_dir)
 

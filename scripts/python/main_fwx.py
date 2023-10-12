@@ -25,9 +25,10 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.info(f"starting {__name__}")
 
 # setting up the time window for pulling data
-end_date = datetime.datetime.now()
+default_days_from_present = int(os.getenv('DEFAULT_DAYS_FROM_PRESENT', 0))
+end_date = datetime.datetime.now() - datetime.timedelta(days=default_days_from_present)
 end_date = end_date.replace(
-                hour=9,
+                hour=8,
                 minute=0,
                 second=0,
                 microsecond=0)

@@ -5,10 +5,11 @@
 - original runs every day at 8am
 """
 
-import remote_ostore_sync
-import os
 import datetime
 import logging.config
+import os
+
+import remote_ostore_sync
 
 cur_path = os.path.dirname(__file__)
 log_config_path = os.path.join(cur_path, 'logging.config')
@@ -22,7 +23,8 @@ default_days_from_present = int(os.getenv('DEFAULT_DAYS_FROM_PRESENT', 0))
 current_date = datetime.datetime.now() - datetime.timedelta(days=default_days_from_present)
 current_date_str = current_date.strftime('%Y%m%d')
 
-local_file_path_root = os.getenv('ZXS_DATA_DIR', f'./tmp/zxs')
+# file output should have the pattern: ObsTephi_12_CZXS-2023-10-11.csv
+local_file_path_root = os.getenv('ZXS_DATA_DIR', f'./data/zxs')
 local_file_path = os.path.join(local_file_path_root, 'raw', "{date_str}")
 local_file_date_fmt = '%Y%m%d'
 
@@ -51,3 +53,15 @@ sync.sync()
 # https://hpfx.collab.science.gc.ca/20230801/WXO-DD/vertical_profile/observation/csv/
 # file to get: ObsTephi_12_CZXS.csv
 # rename it: ObsTephi_12_CZXS-%YYYY%-%MT%-%DD%.csv
+
+local_file_dir = cnfig.calc_local_path()
+local_file_date_str = current_date.strftime("%Y-%m-%d")
+old_file_name = os.path.join(
+    local_file_dir,
+    'ObsTephi_12_CZXS.csv')
+
+new_file_name = os.path.join(
+    local_file_dir,
+    f'ObsTephi_12_CZXS-{local_file_date_str}.csv')
+if not os.path.exists(new_file_name):
+    os.rename(old_file_name, new_file_name)
