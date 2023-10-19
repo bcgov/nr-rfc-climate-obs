@@ -34,7 +34,8 @@ node('zavijava_rfc') {
         }
         stage('rclone sync data') {
             bat '''
-                # create the config file.
+                :: create the config file.
+                echo off
                 echo [nrsobjstore] > rclone.config
                 echo type = s3 >> rclone.config
                 echo provider = Minio >> rclone.config
@@ -43,6 +44,7 @@ node('zavijava_rfc') {
                 echo secret_access_key = %OBJ_STORE_SECRET% >> rclone.config
                 echo region = us-east-1 >> rclone.config
                 echo endpoint = https://nrs.objectstore.gov.bc.ca:443 >> rclone.config
+                echo on
             '''
         }
         stage('rclone execute') {
@@ -52,6 +54,7 @@ node('zavijava_rfc') {
                 set RCLONE_CONFIG=%current_dir%\\rclone.config
 
                 :: get the current year
+                echo %Date%
                 set current_year=%Date:~0,4%
                 echo current year is %current_year%
 
