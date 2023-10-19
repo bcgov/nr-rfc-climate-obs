@@ -3,7 +3,7 @@ node('zavijava_rfc') {
         "JOB_NAME=sync_to_object_store",
         "TEMP=$WORKSPACE\\tmp",
         "TMP=$WORKSPACE\\tmp",
-        "no_proxy=github.com"
+        "no_proxy=github.com",
         "RCLONE_PATH_VAR=rclone-v1.64.0-windows-amd64"
         ]) {
         stage('checkout') {
