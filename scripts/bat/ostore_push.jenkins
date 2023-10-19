@@ -5,7 +5,10 @@ node('zavijava_rfc') {
         "TMP=$WORKSPACE\\tmp",
         "no_proxy=github.com",
         "RCLONE_PATH_VAR=rclone-v1.64.0-windows-amd64",
-        "TAGNAME=feat-15-xl-ingestion"
+        "TAGNAME=feat-15-xl-ingestion",
+        "JAVA_PATH=E:\\sw_nt\\Java\\jdk-11\\bin",
+        "WGET_PATH=E:\\Shared\\MPOML\\SRC",
+        "CURL_PATH=E:\\sw_nt\\QGIS_3.10\\bin"
         ]) {
         stage('checkout') {
             //sh 'if [ ! -d "$TEMP" ]; then mkdir $TEMP; fi'
@@ -13,16 +16,18 @@ node('zavijava_rfc') {
         }
         stage('get_rclone') {
             bat '''
+
+
                 :: pull the rclone binary and extract it
                 if not exist rclone.exe (
 
                     if not exist rclone.zip (
-                        wget https://downloads.rclone.org/v1.64.0/%RCLONE_PATH_VAR%.zip -O rclone.zip
+                        %CURL_PATH%\\curl -O https://downloads.rclone.org/v1.64.0/%RCLONE_PATH_VAR%.zip -O rclone.zip
                     ) else (
                         rem file doesn't exist
                     )
-                    jar -xvf rclone.zip
-                    copy %RCLONE_PATH_VAR%\rclone.exe rclone.exe
+                    %JAVA_PATH%\\jar -xvf rclone.zip
+                    copy %RCLONE_PATH_VAR%\\rclone.exe rclone.exe
                     rmdir /s /q %RCLONE_PATH_VAR%
                 )
             '''
