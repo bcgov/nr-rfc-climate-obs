@@ -41,8 +41,8 @@ echo current year is %current_year%
 :: ----- Sync the climate obs data spreadsheet
 .\rclone.exe sync ^
     --check-first ^
-    \\Sfp.idir.bcgov\s164\S63101\Watershare\RFC\1DATA\2CLIMATE_OBS\%current_year% ^
-    nrsobjstore:rfcdata\models\data\climate_obs
+    \\\\Sfp.idir.bcgov\\s164\\S63101\\Watershare\\RFC\\1DATA\\2CLIMATE_OBS\\%current_year% ^
+    nrsobjstore:rfcdata\\models\\data\\climate_obs
 
 :: delete the rclone config
 del rclone.config
