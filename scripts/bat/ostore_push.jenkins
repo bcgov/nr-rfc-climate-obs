@@ -63,7 +63,6 @@ node('zavijava_rfc') {
 
                 :: delete the rclone config
                 del rclone.config
-
             '''
         }
     }
