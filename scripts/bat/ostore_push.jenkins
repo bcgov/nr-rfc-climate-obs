@@ -1,0 +1,64 @@
+node('zavijava_rfc') {
+    withEnv([
+        "JOB_NAME=sync_to_object_store",
+        "TEMP=$WORKSPACE\\tmp",
+        "TMP=$WORKSPACE\\tmp",
+        "no_proxy=github.com"
+        "RCLONE_PATH_VAR=rclone-v1.64.0-windows-amd64"
+        ]) {
+        stage('checkout') {
+            //sh 'if [ ! -d "$TEMP" ]; then mkdir $TEMP; fi'
+            checkout([$class: 'GitSCM', branches: [[name: "${env.TAGNAME}"]], extensions: [], userRemoteConfigs: [[url: 'https://github.com/bcgov/nr-rfc-climate-obs']]])
+        }
+        stage('get_rclone') {
+            bat '''
+                :: pull the rclone binary and extract it
+                if not exist rclone.exe (
+
+                    if not exist rclone.zip (
+                        wget https://downloads.rclone.org/v1.64.0/%RCLONE_PATH_VAR%.zip -O rclone.zip
+                    ) else (
+                        rem file doesn't exist
+                    )
+                    jar -xvf rclone.zip
+                    copy %RCLONE_PATH_VAR%\rclone.exe rclone.exe
+                    rmdir /s /q %RCLONE_PATH_VAR%
+                )
+            '''
+        }
+        stage('rclone sync data') {
+            bat '''
+                # create the config file.
+                echo [nrsobjstore] > rclone.config
+                echo type = s3 >> rclone.config
+                echo provider = Minio >> rclone.config
+                echo env_auth = false >> rclone.config
+                echo access_key_id = %OBJ_STORE_USER% >> rclone.config
+                echo secret_access_key = %OBJ_STORE_SECRET% >> rclone.config
+                echo region = us-east-1 >> rclone.config
+                echo endpoint = https://nrs.objectstore.gov.bc.ca:443 >> rclone.config
+            '''
+        }
+        stage('rclone execute') {
+            bat '''
+                :: define env var for where the file is located
+                set current_dir=%cd%
+                set RCLONE_CONFIG=%current_dir%\rclone.config
+
+                :: get the current year
+                set current_year=%Date:~0,4%
+                echo current year is %current_year%
+
+                :: execute the actual clone
+                .\rclone.exe sync ^
+                    --check-first ^
+                    \\Sfp.idir.bcgov\s164\S63101\Watershare\RFC\1DATA\2CLIMATE_OBS\%current_year% ^
+                    nrsobjstore:rfcdata\models\data\climate_obs
+
+                :: delete the rclone config
+                del rclone.config
+
+            '''
+        }
+    }
+}
