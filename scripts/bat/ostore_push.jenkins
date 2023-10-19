@@ -22,7 +22,7 @@ node('zavijava_rfc') {
                 if not exist rclone.exe (
 
                     if not exist rclone.zip (
-                        %CURL_PATH%\\curl -O https://downloads.rclone.org/v1.64.0/%RCLONE_PATH_VAR%.zip -O rclone.zip
+                        %CURL_PATH%\\curl -O https://downloads.rclone.org/v1.64.0/%RCLONE_PATH_VAR%.zip
                     ) else (
                         rem file doesn't exist
                     )
