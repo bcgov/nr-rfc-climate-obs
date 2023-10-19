@@ -56,7 +56,7 @@ node('zavijava_rfc') {
                 echo current year is %current_year%
 
                 :: execute the actual clone
-                .\rclone.exe sync ^
+                .\\rclone.exe sync ^
                     --check-first ^
                     \\\\Sfp.idir.bcgov\\s164\\S63101\\Watershare\\RFC\\1DATA\\2CLIMATE_OBS\\%current_year% ^
                     nrsobjstore:rfcdata\\models\\data\\climate_obs
