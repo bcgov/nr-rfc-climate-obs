@@ -49,7 +49,7 @@ node('zavijava_rfc') {
             bat '''
                 :: define env var for where the file is located
                 set current_dir=%cd%
-                set RCLONE_CONFIG=%current_dir%\rclone.config
+                set RCLONE_CONFIG=%current_dir%\\rclone.config
 
                 :: get the current year
                 set current_year=%Date:~0,4%
