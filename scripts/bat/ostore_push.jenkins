@@ -95,7 +95,7 @@ node('zavijava_rfc') {
             '''
         }
         stage('unmap drives') {
-            SET NETWORK_DRIVE=\\%SFP_HOST%\%SFP_PATH_1%
+            SET NETWORK_DRIVE=\\\\%SFP_HOST%\\%SFP_PATH_1%
             if EXIST %SFP_DRIVE_LETTER%:\\nul  (
                 net use %SFP_DRIVE_LETTER%: /delete
             )
