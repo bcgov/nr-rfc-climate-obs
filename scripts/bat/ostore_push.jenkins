@@ -58,6 +58,13 @@ node('zavijava_rfc') {
                 set current_year=%Date:~0,4%
                 echo current year is %current_year%
 
+                :: verify that the number is numeric, otherwise assume data format
+                :: is Thu 10/19/2023
+                set /a varCheck=%current_year%
+                if not %varCheck% == %current_year% (
+                    set current_year=%Date:~10,14%
+                )
+
                 :: execute the actual clone
                 .\\rclone.exe sync ^
                     --check-first ^
