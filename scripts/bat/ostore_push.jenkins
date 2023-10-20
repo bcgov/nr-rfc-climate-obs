@@ -8,7 +8,8 @@ node('zavijava_rfc') {
         "TAGNAME=feat-15-xl-ingestion",
         "JAVA_PATH=E:\\sw_nt\\Java\\jdk-11\\bin",
         "WGET_PATH=E:\\Shared\\MPOML\\SRC",
-        "CURL_PATH=E:\\sw_nt\\QGIS_3.10\\bin"
+        "CURL_PATH=E:\\sw_nt\\QGIS_3.10\\bin",
+        "SFP_DRIVE_LETTER=Z"
         ]) {
         stage('checkout') {
             //sh 'if [ ! -d "$TEMP" ]; then mkdir $TEMP; fi'
@@ -49,6 +50,15 @@ node('zavijava_rfc') {
                 echo on
             '''
         }
+        stage('map drives') {
+            SET NETWORK_DRIVE=\\%SFP_HOST%\%SFP_PATH_1%
+            if NOT EXIST %SFP_DRIVE_LETTER%:\\nul  (
+                echo off
+                net use %SFP_DRIVE_LETTER%: %NETWORK_DRIVE% /USER:%SFP_USER_DOMAIN%\%SFP_USER% %SFP_PASSWORD% /PERSISTENT:NO
+                echo on
+            )
+        }
+
         stage('rclone execute') {
             bat '''
                 :: define env var for where the file is located
@@ -67,15 +77,24 @@ node('zavijava_rfc') {
                     set current_year=%Date:~10,14%
                 )
 
+                set RCLONE_SOURCE_PATH_1=%SFP_DRIVE_LETTER%:\\%SFP_PATH_2%\\Watershare\\RFC\\1DATA\\2CLIMATE_OBS\\%current_year%
+                echo source path: %RCLONE_SOURCE_PATH_1%
                 :: execute the actual clone
                 .\\rclone.exe sync ^
                     --check-first ^
-                    \\\\Sfp.idir.bcgov\\s164\\S63101\\Watershare\\RFC\\1DATA\\2CLIMATE_OBS\\%current_year% ^
+                    %RCLONE_SOURCE_PATH_1% ^
                     nrsobjstore:rfcdata\\models\\data\\climate_obs
 
                 :: delete the rclone config
                 del rclone.config
             '''
         }
+        stage('unmap drives') {
+            SET NETWORK_DRIVE=\\%SFP_HOST%\%SFP_PATH_1%
+            if EXIST %SFP_DRIVE_LETTER%:\\nul  (
+                net use %SFP_DRIVE_LETTER%: /delete
+            )
+        }
+
     }
 }
