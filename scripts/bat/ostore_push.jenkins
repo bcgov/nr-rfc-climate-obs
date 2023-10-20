@@ -44,6 +44,8 @@ node('zavijava_rfc') {
                 echo secret_access_key = %OBJ_STORE_SECRET% >> rclone.config
                 echo region = us-east-1 >> rclone.config
                 echo endpoint = https://nrs.objectstore.gov.bc.ca:443 >> rclone.config
+                echo [local] >> rclone.config
+                echo nounc = true >> rclone.config
                 echo on
             '''
         }
