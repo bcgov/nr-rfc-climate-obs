@@ -95,9 +95,11 @@ node('zavijava_rfc') {
             '''
         }
         stage('unmap drives') {
-            if EXIST %SFP_DRIVE_LETTER%:\\nul  (
-                net use %SFP_DRIVE_LETTER%: /delete
-            )
+            bat '''
+                if EXIST %SFP_DRIVE_LETTER%:\\nul  (
+                    net use %SFP_DRIVE_LETTER%: /delete
+                )
+            '''
         }
 
     }
