@@ -53,8 +53,9 @@ node('zavijava_rfc') {
         stage('map drives') {
             bat '''
 
-                SET NETWORK_DRIVE="\\%SFP_HOST%\%SFP_PATH_1%"
-                set NETWORK_DRIVE=%NETWORK_DRIVE:"=%
+                SET NETWORK_DRIVE=\\\\%SFP_HOST%\\%SFP_PATH_1%
+                echo NETWORK_DRIVE is %NETWORK_DRIVE%
+                ::set NETWORK_DRIVE=%NETWORK_DRIVE:"=%
                 if NOT EXIST %SFP_DRIVE_LETTER%:\\nul  (
                     echo off
                     net use %SFP_DRIVE_LETTER%: %NETWORK_DRIVE% /USER:%SFP_USER_DOMAIN%\%SFP_USER% %SFP_PASSWORD% /PERSISTENT:NO
