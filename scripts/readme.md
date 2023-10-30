@@ -61,11 +61,6 @@ docker run  -it \
     /app/run_zxs.sh
 ```
 
-
-
-
-
-
 ## Debug Container
 ```
 docker run -e F_WX_DATA_DIR=/data/ -v /home/kjnether/rfc_proj/climate_obs/tmp:/data   -it --entrypoint /bin/bash rdataprep
