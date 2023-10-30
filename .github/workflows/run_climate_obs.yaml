@@ -4,7 +4,7 @@ on:
   # debugging while working on this action
   push:
     branches:
-      - "feat/feat-15-xl-ingestion"
+      - "feat-15-xl-ingestion"
   # cron schedules are in UTC
   # this job should run at 7.15 am pst, which translates to 2.15 pm. UTC which
   # is the timezone that gha uses.
