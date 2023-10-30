@@ -1,0 +1,63 @@
+name: Runs the climate observations XL
+
+on:
+  # debugging while working on this action
+  push:
+    branches:
+      - "feat/feat-15-xl-ingestion"
+  # cron schedules are in UTC
+  # this job should run at 7.15 am pst, which translates to 2.15 pm. UTC which
+  # is the timezone that gha uses.
+  schedule:
+    - cron: '15 14 * * *'
+  workflow_dispatch:
+  repository_dispatch:
+    types: prep-xl
+
+jobs:
+  prep-xl:
+    defaults:
+      run:
+        shell: bash
+    name: 'Download and Process Automated Snow Pillow Data'
+    runs-on: windows-latest
+    environment: PROD
+    env:
+      OBJ_STORE_BUCKET: ${{ secrets.OBJ_STORE_BUCKET }}
+      OBJ_STORE_SECRET: ${{ secrets.OBJ_STORE_SECRET }}
+      OBJ_STORE_USER: ${{ secrets.OBJ_STORE_USER }}
+      OBJ_STORE_HOST: ${{  vars.OBJ_STORE_HOST }}
+      ASP_ENV_DATA_DIR: ./data/asp_env
+      ASP_PREPD_DATA_DIR: ./data/asp_prepd
+      ASP_OSTORE_RAW_DATA_DIR: ASP/raw
+      ASP_OSTORE_PREPD_DATA_DIR: ASP/prepd
+
+    steps:
+    - uses: actions/checkout@v3
+      id: checkout
+      with:
+       fetch-depth: 0
+
+    - name: Install Office
+      run: choco install office365business
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - id: install_dependencies
+      name: install python dependencies
+      shell: bash
+      run: |
+        pip install --upgrade pip
+        pip install -r scripts/python/requirements.txt
+        pip install -r scripts/python/requirements-win32-xl.txt
+
+
+    - id: run_asp_data_pipe
+      name: download and process asp data
+      shell: bash
+      env:
+        DATESTR: ${{ github.event.client_payload.idem_key }}
+      run: |
+        python scripts/python/main_win32_climateobs_prep.py
