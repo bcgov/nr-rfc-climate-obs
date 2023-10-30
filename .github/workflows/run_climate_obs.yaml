@@ -39,7 +39,8 @@ jobs:
        fetch-depth: 0
 
     - name: Install Office
-      run: choco install office365business
+      run: choco install office365business --forcex86 --params "'/productid:O365HomePremRetail /exclude:Access Groove Lync OneDrive OneNote Outlook Publisher /language:fr-FR /updates:FALSE /eula:TRUE'"
+      #run: choco install office365business
 
     - uses: actions/setup-python@v4
       with:
