@@ -17,8 +17,6 @@ node('zavijava_rfc') {
         }
         stage('get_rclone') {
             bat '''
-
-
                 :: pull the rclone binary and extract it
                 if not exist rclone.exe (
 
@@ -33,7 +31,7 @@ node('zavijava_rfc') {
                 )
             '''
         }
-        stage('rclone sync data') {
+        stage('rclone config setup') {
             bat '''
                 :: create the config file.
                 echo off
@@ -91,7 +89,6 @@ node('zavijava_rfc') {
                     nrsobjstore:rfcdata\\models\\data\\climate_obs
 
                 :: delete the rclone config
-                del rclone.config
             '''
         }
         stage('unmap drives') {
