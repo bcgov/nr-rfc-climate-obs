@@ -67,7 +67,7 @@ node('zavijava_rfc') {
                 )
 
                 :: calculate the path to the climate_obs ss
-                set CLIMATE_OBS_XL_PATH=%SFP_NETWORK_PATH_CLIMATE_OBS%\\%current_year%\\ClimateDataOBS_2023.xlsm
+                set CLIMATE_OBS_XL_PATH=%SFP_NETWORK_PATH_CLIMATE_OBS%\\%current_year%\\ClimateDataOBS_%current_year%.xlsm
                 echo climate obs path: %CLIMATE_OBS_XL_PATH%
 
                 :: execute the actual clone
