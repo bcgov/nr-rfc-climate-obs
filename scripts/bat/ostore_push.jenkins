@@ -84,7 +84,7 @@ node('zavijava_rfc') {
                 :: execute the actual clone
                 .\\rclone.exe sync ^
                     --check-first ^
-                    %SFP_NETWORK_PATH% ^
+                    %SFP_NETWORK_PATH_CLIMATE_OBS% ^
                     nrsobjstore:rfcdata\\models\\data\\climate_obs
 
                 :: delete the rclone config
