@@ -33,7 +33,7 @@ node('zavijava_rfc') {
         }
         stage('rclone config setup') {
             bat '''
-                :: create the config file.
+                :: create the config file that rclone will use
                 echo off
                 echo [nrsobjstore] > rclone.config
                 echo type = s3 >> rclone.config
@@ -48,19 +48,6 @@ node('zavijava_rfc') {
                 echo on
             '''
         }
-//        stage('map drives') {
-//            bat '''
-//                SET NETWORK_DRIVE=\\\\%SFP_HOST%\\%SFP_PATH_1%
-//                echo NETWORK_DRIVE is %NETWORK_DRIVE%
-//                ::set NETWORK_DRIVE=%NETWORK_DRIVE:"=%
-//                if NOT EXIST %SFP_DRIVE_LETTER%:\\nul  (
-//                    echo off
-//                    :: net use %SFP_DRIVE_LETTER%: %NETWORK_DRIVE% /USER:%SFP_USER_DOMAIN%\\%SFP_USER% %SFP_PASSWORD% /PERSISTENT:NO
-//                    net use %SFP_DRIVE_LETTER%: %NETWORK_DRIVE% /PERSISTENT:NO
-//                    echo on
-//                )
-//           '''
-//        }
         stage('rclone execute') {
             bat '''
                 :: define env var for where the file is located
@@ -79,25 +66,19 @@ node('zavijava_rfc') {
                     set current_year=%Date:~10,14%
                 )
 
+                :: calculate the path to the climate_obs ss
+                set CLIMATE_OBS_XL_PATH=SFP_NETWORK_PATH_CLIMATE_OBS%\\%current_year%\\ClimateDataOBS_2023.xlsm
+                echo climate obs path: %CLIMATE_OBS_XL_PATH%
 
-                echo source path: %SFP_NETWORK_PATH%
                 :: execute the actual clone
                 .\\rclone.exe sync ^
                     --check-first ^
-                    %SFP_NETWORK_PATH_CLIMATE_OBS% ^
+                    %CLIMATE_OBS_XL_PATH% ^
                     nrsobjstore:rfcdata\\models\\data\\climate_obs
 
                 :: delete the rclone config
                 del %RCLONE_CONFIG%
             '''
         }
-        stage('unmap drives') {
-            bat '''
-                if EXIST %SFP_DRIVE_LETTER%:\\nul  (
-                    net use %SFP_DRIVE_LETTER%: /delete
-                )
-            '''
-        }
-
     }
 }
