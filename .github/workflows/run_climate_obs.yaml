@@ -42,19 +42,15 @@ jobs:
       id: install_rclone
       run: choco install rclone
 
-    - uses: andreiio/rclone-action@v1
-      with:
-        args: copy dist s3:target
-      env:
-        RCLONE_CONFIG_S3_TYPE: s3
-        RCLONE_CONFIG_S3_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY_ID }}
-        RCLONE_CONFIG_S3_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS_KEY }}
-
-
     - name: pull ostore data
       id: pull_ostore_data
       shell: cmd
       run: |
+        :: calculate the path for where the input ss will be located
+        mkdir data
+        set current_dir=%cd%
+        set MODEL_DIR=%current_dir%\data
+
         :: setup the rclone config file
         echo off
         echo [nrsobjstore] > rclone.config
@@ -68,20 +64,17 @@ jobs:
         echo on
 
         :: get the current year for the folder name
-        set current_dir=%cd%
         set RCLONE_CONFIG=%current_dir%\rclone.config
         set current_year=%Date:~0,4%
         echo current year is %current_year%
 
         :: pull the rclone data from ostore
         .\rclone.exe copy ^
-          nrsobjstore:rfcdata\\models\\data\\climate_obs
+          nrsobjstore:rfcdata\\models\\data\\climate_obs ^
+          %current_dir%\data ^
 
-
-
-
-    - name: Install Office
-      run: choco install office365business --version=16731.20354 --params "'/exclude:Access Groove Lync OneDrive OneNote Outlook Publisher /updates:FALSE /eula:TRUE'"
+    # - name: Install Office
+    #   run: choco install office365business --version=16731.20354 --params "'/exclude:Access Groove Lync OneDrive OneNote Outlook Publisher /updates:FALSE /eula:TRUE'"
 
     - uses: actions/setup-python@v4
       with:

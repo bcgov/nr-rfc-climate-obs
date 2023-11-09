@@ -77,7 +77,7 @@ node('zavijava_rfc') {
                     nrsobjstore:rfcdata\\models\\data\\climate_obs
 
                 :: sync ECCC data
-                .\rclone.exe sync ^
+                .\\rclone.exe sync ^
                     --check-first ^
                     nrsobjstore:rfcdata\\RFC_DATA\\ECCC\\hourly\\csv ^
                     \\\\%PROD_SERVER%\\Shared\\MPOML\\HOURLY\\csv
