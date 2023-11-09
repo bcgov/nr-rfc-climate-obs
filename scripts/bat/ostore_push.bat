@@ -44,6 +44,14 @@ echo current year is %current_year%
     \\\\%SFP_HOST%\\%SFP_PATH_1%\\%SFP_PATH_2%\\Watershare\\RFC\\1DATA\\2CLIMATE_OBS\\%current_year% ^
     nrsobjstore:rfcdata\\models\\data\\climate_obs
 
+:: Sync the hourly ECC data
+.\rclone.exe sync ^
+    --check-first ^
+    nrsobjstore:rfcdata\\RFC_DATA\\ECCC\\hourly\\csv ^
+    \\\\%SFP_HOST_DATA_1%\\Shared\\MPOML\\HOURLY\\csv
+
+:: RFC_DATA/ECCC/hourly/csv to \\sewer\shared\MPOML\HOURLY\csv
+:: \\sewer\Shared\MPOML\HOURLY\csv
 :: delete the rclone config
 del rclone.config
 

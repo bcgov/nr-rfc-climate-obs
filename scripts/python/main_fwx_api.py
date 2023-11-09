@@ -329,6 +329,7 @@ class WildfireAPI:
         return fwx_out_dir
 
 
+
 if __name__ == '__main__':
     wf_api = WildfireAPI()
     hourlies = wf_api.get_all_stations_hourlies()
