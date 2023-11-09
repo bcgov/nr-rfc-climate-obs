@@ -76,6 +76,13 @@ node('zavijava_rfc') {
                     %CLIMATE_OBS_XL_PATH% ^
                     nrsobjstore:rfcdata\\models\\data\\climate_obs
 
+                :: sync ECCC data
+                .\rclone.exe sync ^
+                    --check-first ^
+                    nrsobjstore:rfcdata\\RFC_DATA\\ECCC\\hourly\\csv ^
+                    \\\\%PROD_SERVER%\\Shared\\MPOML\\HOURLY\\csv
+
+
                 :: delete the rclone config
                 del %RCLONE_CONFIG%
             '''
