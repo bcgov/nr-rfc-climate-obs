@@ -9,6 +9,13 @@ import os
 import main_fwx_api
 import remote_ostore_sync
 
+# debug params
+# if os.path.exists('junk.csv'):
+#     os.remove('junk.csv')
+# end_date = datetime.datetime(2020, 8, 28, 9, 0, 0)
+# fwx_api = main_fwx_api.WildfireAPI(end_date=end_date)
+# fwx_api.get_all_stations_hourlies('junk.csv')
+
 # setup the logging
 cur_path = os.path.dirname(__file__)
 log_config_path = os.path.join(cur_path, 'logging.config')
@@ -43,8 +50,12 @@ ostore_file_path = os.path.join(ostore_path, f'{date_str}.csv')
 # sync
 ostr_sync = remote_ostore_sync.PushProcessed(src_dir=local_path, ostore_dir=ostore_path)
 
+
+
+
 # don't bother doing anything if the data already exists in object storage
 if not ostr_sync.ostore_file_exists(ostore_file_path):
+
 
     # now get the data and store remotely
     fwx_api = main_fwx_api.WildfireAPI(end_date=end_date)
