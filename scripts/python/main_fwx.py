@@ -35,7 +35,7 @@ end_date = end_date.replace(
 # setting up the path to the output data for the local data
 local_file_date_fmt = '%Y-%m-%d'
 date_str = end_date.strftime(local_file_date_fmt)
-local_file_path_root = os.getenv('F_WX_DATA_DIR', f'./data/fwx')
+local_file_path_root = os.getenv('F_WX_DATA_DIR', './data/fwx')
 local_path = os.path.join(local_file_path_root, 'extracts', date_str)
 if not os.path.exists(local_path):
     os.makedirs(local_path)
