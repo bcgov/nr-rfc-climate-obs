@@ -13,13 +13,7 @@ from typing import Union
 import fwx_typedicts
 import requests
 
-# setting up the logging
-cur_path = os.path.dirname(__file__)
-logger_name = os.path.basename(__file__).split('.')[0]
-print(logger_name)
-log_config_path = os.path.join(cur_path, 'logging.config')
-logging.config.fileConfig(log_config_path, disable_existing_loggers=False)
-LOGGER = logging.getLogger(logger_name)
+LOGGER = logging.getLogger(__name__)
 LOGGER.info(f"starting {logger_name}")
 LOGGER.debug(f"cur_path: {cur_path}")
 
@@ -330,5 +324,15 @@ class WildfireAPI:
 
 
 if __name__ == '__main__':
+    # setting up the logging
+    cur_path = os.path.dirname(__file__)
+    logger_name = os.path.basename(__file__).split('.')[0]
+    print(logger_name)
+    log_config_path = os.path.join(cur_path, 'logging.config')
+    logging.config.fileConfig(log_config_path, disable_existing_loggers=False)
+    LOGGER = logging.getLogger(logger_name)
+    LOGGER.info(f"starting {logger_name}")
+    LOGGER.debug(f"cur_path: {cur_path}")
+
     wf_api = WildfireAPI()
     hourlies = wf_api.get_all_stations_hourlies()
