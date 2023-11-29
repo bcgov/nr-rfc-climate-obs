@@ -50,9 +50,6 @@ ostore_file_path = os.path.join(ostore_path, f'{date_str}.csv')
 # sync
 ostr_sync = remote_ostore_sync.PushProcessed(src_dir=local_path, ostore_dir=ostore_path)
 
-
-
-
 # don't bother doing anything if the data already exists in object storage
 if not ostr_sync.ostore_file_exists(ostore_file_path):
 
