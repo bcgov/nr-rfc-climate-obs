@@ -155,8 +155,16 @@ class WildfireAPI:
             delimited string
         """
         hourly_row = []
-        station_hourly['weatherTimestamp'] = int(station_hourly['weatherTimestamp']) + \
-            self.station_time_adjustment
+        weatherTimeStamp_datetime = datetime.datetime.strptime(
+            station_hourly['weatherTimestamp'],
+            '%Y%m%d%H')
+        weatherTimeStamp_datetime_corrected = weatherTimeStamp_datetime - datetime.timedelta(hours=1)
+        station_hourly['weatherTimestamp'] = weatherTimeStamp_datetime_corrected.strftime(
+            '%Y%m%d%H')
+        LOGGER.debug(f"station_hourly timestamp: {station_hourly['weatherTimestamp']}")
+
+        # station_hourly['weatherTimestamp'] = int(station_hourly['weatherTimestamp']) + \
+        #     self.station_time_adjustment
 
         for property in self.hourly_properties_to_export:
 
