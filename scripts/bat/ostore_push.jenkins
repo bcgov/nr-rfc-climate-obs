@@ -1,0 +1,91 @@
+node('zavijava_rfc') {
+    withEnv([
+        "JOB_NAME=sync_to_object_store",
+        "TEMP=$WORKSPACE\\tmp",
+        "TMP=$WORKSPACE\\tmp",
+        "no_proxy=github.com",
+        "RCLONE_PATH_VAR=rclone-v1.64.0-windows-amd64",
+        "TAGNAME=feat-15-xl-ingestion",
+        "JAVA_PATH=E:\\sw_nt\\Java\\jdk-11\\bin",
+        "WGET_PATH=E:\\Shared\\MPOML\\SRC",
+        "CURL_PATH=E:\\sw_nt\\QGIS_3.10\\bin",
+        "SFP_DRIVE_LETTER=Z"
+        ]) {
+        stage('checkout') {
+            //sh 'if [ ! -d "$TEMP" ]; then mkdir $TEMP; fi'
+            checkout([$class: 'GitSCM', branches: [[name: "${env.TAGNAME}"]], extensions: [], userRemoteConfigs: [[url: 'https://github.com/bcgov/nr-rfc-climate-obs']]])
+        }
+        stage('get_rclone') {
+            bat '''
+                :: pull the rclone binary and extract it
+                if not exist rclone.exe (
+
+                    if not exist rclone.zip (
+                        %CURL_PATH%\\curl -o rclone.zip https://downloads.rclone.org/v1.64.0/%RCLONE_PATH_VAR%.zip
+                    ) else (
+                        rem file doesn't exist
+                    )
+                    %JAVA_PATH%\\jar -xvf rclone.zip
+                    copy %RCLONE_PATH_VAR%\\rclone.exe rclone.exe
+                    rmdir /s /q %RCLONE_PATH_VAR%
+                )
+            '''
+        }
+        stage('rclone config setup') {
+            bat '''
+                :: create the config file that rclone will use
+                echo off
+                echo [nrsobjstore] > rclone.config
+                echo type = s3 >> rclone.config
+                echo provider = Minio >> rclone.config
+                echo env_auth = false >> rclone.config
+                echo access_key_id = %OBJ_STORE_USER% >> rclone.config
+                echo secret_access_key = %OBJ_STORE_SECRET% >> rclone.config
+                echo region = us-east-1 >> rclone.config
+                echo endpoint = https://nrs.objectstore.gov.bc.ca:443 >> rclone.config
+                echo [local] >> rclone.config
+                echo nounc = true >> rclone.config
+                echo on
+            '''
+        }
+        stage('rclone execute') {
+            bat '''
+                :: define env var for where the file is located
+                set current_dir=%cd%
+                set RCLONE_CONFIG=%current_dir%\\rclone.config
+
+                :: get the current year
+                echo %Date%
+                set current_year=%Date:~0,4%
+                echo current year is %current_year%
+
+                :: verify that the number is numeric, otherwise assume data format
+                :: is Thu 10/19/2023
+                set /a varCheck=%current_year%
+                if not %varCheck% == %current_year% (
+                    set current_year=%Date:~10,14%
+                )
+
+                :: calculate the path to the climate_obs ss
+                set CLIMATE_OBS_XL_PATH=%SFP_NETWORK_PATH_CLIMATE_OBS%\\%current_year%\\ClimateDataOBS_%current_year%.xlsm
+                echo climate obs path: %CLIMATE_OBS_XL_PATH%
+
+                :: execute the actual clone
+                .\\rclone.exe sync ^
+                    --check-first ^
+                    %CLIMATE_OBS_XL_PATH% ^
+                    nrsobjstore:rfcdata\\models\\data\\climate_obs
+
+                :: sync ECCC data
+                .\\rclone.exe sync ^
+                    --check-first ^
+                    nrsobjstore:rfcdata\\RFC_DATA\\ECCC\\hourly\\csv ^
+                    \\\\%PROD_SERVER%\\Shared\\MPOML\\HOURLY\\csv
+
+
+                :: delete the rclone config
+                del %RCLONE_CONFIG%
+            '''
+        }
+    }
+}

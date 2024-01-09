@@ -52,13 +52,14 @@ Comparison between R script output and python script output:
 
 """
 
-import pandas as pd
 import datetime
-import os
-import logging.config
 import logging
+import logging.config
+import os
+import sys  # NOQA
+
+import pandas as pd
 import remote_ostore_sync
-import sys # NOQA
 
 LOGGER = logging.getLogger(__name__)
 
@@ -597,7 +598,8 @@ if __name__ == "__main__":
     #     main = main(date_to_process=date_to_process)
     #date_to_process = datetime.datetime.strptime('20230920', '%Y%m%d')
     #main = main(date_to_process=date_to_process)
-
-    main = main()
+    default_days_from_present = int(os.getenv('DEFAULT_DAYS_FROM_PRESENT', 0))
+    date_to_process = datetime.datetime.now() - datetime.timedelta(days=default_days_from_present)
+    main = main(date_to_process=date_to_process)
     main.run()
     main.syncProcessedData()
