@@ -1,3 +1,10 @@
+# This job is not currently working, it runs successfully up to the point where it
+# tries to run the actual script.  Also the installation of office has not been
+# confirmed to work.  Leaving it in the repo in case we circle back to take a closer
+# look at the idea of running xl macros as gha.  Currently thinking this isn't a great
+# pattern
+#
+
 name: Runs the climate observations XL
 
 on:
@@ -8,8 +15,8 @@ on:
   # cron schedules are in UTC
   # this job should run at 7.15 am pst, which translates to 2.15 pm. UTC which
   # is the timezone that gha uses.
-  schedule:
-    - cron: '15 14 * * *'
+  # schedule:
+  #   - cron: '15 14 * * *'
   workflow_dispatch:
   repository_dispatch:
     types: prep-xl
