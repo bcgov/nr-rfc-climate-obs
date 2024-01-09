@@ -69,7 +69,7 @@ jobs:
         echo current year is %current_year%
 
         :: pull the rclone data from ostore
-        .\rclone.exe copy ^
+        rclone.exe copy ^
           nrsobjstore:rfcdata\\models\\data\\climate_obs ^
           %current_dir%\data ^
 
