@@ -115,11 +115,7 @@ class ClimateObsXLUpdate:
             #sheet.Cells(col_row_list[0] + 1 + offset[0], col_row_list[1] + 1 + offset[1]).Value = values[offset_cnt]
             #offset_cnt += 1
 
-
-
-
-
-    def get_workbook(self):
+    def get_workbook(self, arg: str):
         LOGGER.info("opening xl workbook... may take a moment")
         xl = win32com.client.gencache.EnsureDispatch('Excel.Application')
         xl.Visible = True
