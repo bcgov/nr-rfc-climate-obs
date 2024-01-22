@@ -69,3 +69,4 @@ scripts/python/tests/test_data/**
 venv_win/**
 
 junk.csv
+raw_data/temp_file/ClimateOBS_hourly_raw_2023.parquet
