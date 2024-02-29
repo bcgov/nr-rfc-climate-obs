@@ -76,12 +76,23 @@ node('zavijava_rfc') {
                     %CLIMATE_OBS_XL_PATH% ^
                     nrsobjstore:rfcdata\\models\\data\\climate_obs
 
-                :: sync ECCC data
+                :: sync ECCC data to PROD
                 .\\rclone.exe sync ^
                     --check-first ^
                     nrsobjstore:rfcdata\\RFC_DATA\\ECCC\\hourly\\csv ^
                     \\\\%PROD_SERVER%\\Shared\\MPOML\\HOURLY\\csv
 
+                :: sync ECCC data to TEST
+                .\\rclone.exe sync ^
+                    --check-first ^
+                    nrsobjstore:rfcdata\\RFC_DATA\\ECCC\\hourly\\csv ^
+                    \\\\%TEST_SERVER%\\Shared\\MPOML\\HOURLY\\csv
+
+                :: copy the PVDD data, using copy so that files on dest and not on src do not get deleted
+                .\rclone.exe copy ^
+                    --check-first ^
+                    nrsobjstore:rfcdata\\dischargeOBS\\PVDD ^
+                    \\\\%PROD_SERVER%\\Shared\\Real-time_Data\\PVDD
 
                 :: delete the rclone config
                 del %RCLONE_CONFIG%
