@@ -135,7 +135,7 @@ class WildfireAPI:
 
         if not os.path.exists(out_file):
             for station_code in station_codes:
-                LOGGER.debug(f"working on station: {station_code}")
+                LOGGER.info(f"working on station: {station_code}")
                 station_hourly = self.get_hourlies(station_code)
                 #self.pprint(station_hourly, output_json=False)
 
@@ -195,7 +195,7 @@ class WildfireAPI:
         LOGGER.debug(f"station_codes = {station_codes}")
         station_codes = [str(station) for station in station_codes]
 
-        LOGGER.debug(f"total number of stations {len(station_codes)}")
+        LOGGER.info(f"total number of stations {len(station_codes)}")
         LOGGER.debug(f"station codes: {station_codes} {len(station_codes)}")
         return station_codes
 
