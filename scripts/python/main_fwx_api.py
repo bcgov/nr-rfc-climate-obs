@@ -23,11 +23,49 @@ LOGGER = logging.getLogger(logger_name)
 LOGGER.info(f"starting {logger_name}")
 LOGGER.debug(f"cur_path: {cur_path}")
 
+
+
+# defines the data that should be exported to the csv, and also creates a
+# mapping of the column names from the api, and then what those columns should
+# be called when they are dumped.  Not sure where some of the values are comming
+# from as there are no values from the api that line up with the data in the
+# ftp site.  When this happens a 3 column list is provided where the first value
+# is '' the second is the output column and the third is the default value for
+# this padded column.
+default_hourly_properties_to_export = [
+    ['stationCode', 'station_code'],
+    ['weatherTimestamp', 'weather_date'],
+    ['precipitation','precipitation'],
+    ['temperature', 'temperature'],
+    ['relativeHumidity', 'HOURLY_RELATIVE_HUMIDITY'],
+    ['windSpeed', 'HOURLY_WIND_SPEED'],
+    ['windDirection', 'HOURLY_WIND_DIRECTION'],
+    ['windGust', 'HOURLY_WIND_GUST'],
+    ['fineFuelMoistureCode', 'HOURLY_FINE_FUEL_MOISTURE_CODE'],
+    ['initialSpreadIndex', 'HOURLY_INITIAL_SPREAD_INDEX'],
+    ['fireWeatherIndex', 'HOURLY_FIRE_WEATHER_INDEX'],
+    ['', 'PRECIPITATION', ''],
+    ['', 'FINE_FUEL_MOISTURE_CODE', ''],
+    ['', 'INITIAL_SPREAD_INDEX', ''],
+    ['', 'FIRE_WEATHER_INDEX', ''],
+    ['', 'DUFF_MOISTURE_CODE', ''],
+    ['', 'DROUGHT_CODE', ''],
+    ['', 'BUILDUP_INDEX', ''],
+    ['', 'DANGER_RATING', ''],
+    ['', 'RN_1_PLUVIO1', 0],
+    ['', 'SNOW_DEPTH', 0],
+    ['', 'SNOW_DEPTH_QUALITY', ''],
+    ['', 'PRECIP_PLUVIO1_STATUS', 0],
+    ['', 'PRECIP_PLUVIO1_TOTAL', 0]
+]
+
 class WildfireAPI:
 
     def __init__(self, url='https://bcwsapi.nrs.gov.bc.ca/wfwx-datamart-api/v1',
                  end_date:datetime=None,
-                 start_date:datetime=None):
+                 start_date:datetime=None,
+                 download_atribute_config=default_hourly_properties_to_export
+                 ):
         """the constructor method for the class, setup to recieve some parameters that
         define what data should be retrieved
 
@@ -68,39 +106,7 @@ class WildfireAPI:
         # compared.
         self.station_time_adjustment = -1
 
-        # defines the data that should be exported to the csv, and also creates a
-        # mapping of the column names from the api, and then what those columns should
-        # be called when they are dumped.  Not sure where some of the values are comming
-        # from as there are no values from the api that line up with the data in the
-        # ftp site.  When this happens a 3 column list is provided where the first value
-        # is '' the second is the output column and the third is the default value for
-        # this padded column.
-        self.hourly_properties_to_export = [
-            ['stationCode', 'station_code'],
-            ['weatherTimestamp', 'weather_date'],
-            ['precipitation','precipitation'],
-            ['temperature', 'temperature'],
-            ['relativeHumidity', 'HOURLY_RELATIVE_HUMIDITY'],
-            ['windSpeed', 'HOURLY_WIND_SPEED'],
-            ['windDirection', 'HOURLY_WIND_DIRECTION'],
-            ['windGust', 'HOURLY_WIND_GUST'],
-            ['fineFuelMoistureCode', 'HOURLY_FINE_FUEL_MOISTURE_CODE'],
-            ['initialSpreadIndex', 'HOURLY_INITIAL_SPREAD_INDEX'],
-            ['fireWeatherIndex', 'HOURLY_FIRE_WEATHER_INDEX'],
-            ['', 'PRECIPITATION', ''],
-            ['', 'FINE_FUEL_MOISTURE_CODE', ''],
-            ['', 'INITIAL_SPREAD_INDEX', ''],
-            ['', 'FIRE_WEATHER_INDEX', ''],
-            ['', 'DUFF_MOISTURE_CODE', ''],
-            ['', 'DROUGHT_CODE', ''],
-            ['', 'BUILDUP_INDEX', ''],
-            ['', 'DANGER_RATING', ''],
-            ['', 'RN_1_PLUVIO1', 0],
-            ['', 'SNOW_DEPTH', 0],
-            ['', 'SNOW_DEPTH_QUALITY', ''],
-            ['', 'PRECIP_PLUVIO1_STATUS', 0],
-            ['', 'PRECIP_PLUVIO1_TOTAL', 0]
-        ]
+        self.hourly_properties_to_export = default_hourly_properties_to_export
 
 
     def get_all_stations_hourlies(self, out_file: Union[None, str]=None):
@@ -129,7 +135,7 @@ class WildfireAPI:
 
         if not os.path.exists(out_file):
             for station_code in station_codes:
-                LOGGER.debug(f"working on station: {station_code}")
+                LOGGER.info(f"working on station: {station_code}")
                 station_hourly = self.get_hourlies(station_code)
                 #self.pprint(station_hourly, output_json=False)
 
@@ -189,7 +195,7 @@ class WildfireAPI:
         LOGGER.debug(f"station_codes = {station_codes}")
         station_codes = [str(station) for station in station_codes]
 
-        LOGGER.debug(f"total number of stations {len(station_codes)}")
+        LOGGER.info(f"total number of stations {len(station_codes)}")
         LOGGER.debug(f"station codes: {station_codes} {len(station_codes)}")
         return station_codes
 
