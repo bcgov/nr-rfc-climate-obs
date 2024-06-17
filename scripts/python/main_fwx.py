@@ -57,9 +57,38 @@ ostr_sync = remote_ostore_sync.PushProcessed(src_dir=local_path, ostore_dir=osto
 # don't bother doing anything if the data already exists in object storage
 if not ostr_sync.ostore_file_exists(ostore_file_path):
 
+    custom_atribes = [
+        ['stationCode', 'station_code'],
+        ['', 'STATION_NAME', ''],
+        ['weatherTimestamp', 'weather_date'],
+        ['precipitation','precipitation'],
+        ['temperature', 'temperature'],
+        ['relativeHumidity', 'HOURLY_RELATIVE_HUMIDITY'],
+        ['windSpeed', 'HOURLY_WIND_SPEED'],
+        ['windDirection', 'HOURLY_WIND_DIRECTION'],
+        ['windGust', 'HOURLY_WIND_GUST'],
+        ['fineFuelMoistureCode', 'HOURLY_FINE_FUEL_MOISTURE_CODE'],
+        ['initialSpreadIndex', 'HOURLY_INITIAL_SPREAD_INDEX'],
+        ['fireWeatherIndex', 'HOURLY_FIRE_WEATHER_INDEX'],
+        ['', 'PRECIPITATION', ''],
+        ['', 'FINE_FUEL_MOISTURE_CODE', ''],
+        ['', 'INITIAL_SPREAD_INDEX', ''],
+        ['', 'FIRE_WEATHER_INDEX', ''],
+        ['', 'DUFF_MOISTURE_CODE', ''],
+        ['', 'DROUGHT_CODE', ''],
+        ['', 'BUILDUP_INDEX', ''],
+        ['', 'DANGER_RATING', ''],
+        ['', 'RN_1_PLUVIO1', 0],
+        ['', 'SNOW_DEPTH', 0],
+        ['', 'SNOW_DEPTH_QUALITY', ''],
+        ['', 'PRECIP_PLUVIO1_STATUS', 0],
+        ['', 'PRECIP_PLUVIO1_TOTAL', 0]
+    ]
+
+
 
     # now get the data and store remotely
-    fwx_api = main_fwx_api.WildfireAPI(end_date=end_date)
+    fwx_api = main_fwx_api.WildfireAPI(end_date=end_date, download_atribute_config=custom_atribes)
     fwx_api.get_all_stations_hourlies(local_file_path)
 
     ostr_sync.sync()
