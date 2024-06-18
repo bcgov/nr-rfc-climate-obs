@@ -95,6 +95,9 @@ class WildfireAPI:
                 second=0,
                 microsecond=0)
 
+        # if not self.hourly_properties_to_export:
+        #     self.hourly_properties_to_export = default_hourly_properties_to_export
+
 
         self.date_time_query_fmt = '%Y%m%d%H'
 
@@ -106,10 +109,10 @@ class WildfireAPI:
         # compared.
         self.station_time_adjustment = -1
 
-        self.hourly_properties_to_export = default_hourly_properties_to_export
+        self.hourly_properties_to_export = download_atribute_config
 
 
-    def get_all_stations_hourlies(self, out_file: Union[None, str]=None):
+    def get_all_stations_hourlies(self, out_file: Union[None, str]=None, overwrite=False):
         """This is the main entry point for the class.  It will get all the stations,
         then iterate over each station and retrieve the data associated with that
         station.  The data for each station gets cached in memory.  Once all the data
@@ -133,7 +136,7 @@ class WildfireAPI:
         if not out_file:
             out_file = self.get_file_path()
 
-        if not os.path.exists(out_file):
+        if not os.path.exists(out_file) or overwrite:
             for station_code in station_codes:
                 LOGGER.info(f"working on station: {station_code}")
                 station_hourly = self.get_hourlies(station_code)
