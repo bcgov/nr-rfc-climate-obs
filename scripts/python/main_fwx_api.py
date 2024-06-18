@@ -113,6 +113,7 @@ class WildfireAPI:
 
 
     def get_all_stations_hourlies(self, out_file: Union[None, str]=None, overwrite=False):
+
         """This is the main entry point for the class.  It will get all the stations,
         then iterate over each station and retrieve the data associated with that
         station.  The data for each station gets cached in memory.  Once all the data

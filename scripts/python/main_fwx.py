@@ -72,7 +72,6 @@ ostr_hrly_sync = remote_ostore_sync.PushProcessed(src_dir=local_hrly_path, ostor
 
 # don't bother doing anything if the data already exists in object storage
 if not ostr_sync.ostore_file_exists(ostore_file_path):
-
     # now get the data and store remotely
     fwx_api = main_fwx_api.WildfireAPI(end_date=end_date)
     fwx_api.get_all_stations_hourlies(local_file_path)
