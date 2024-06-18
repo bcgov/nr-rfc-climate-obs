@@ -434,7 +434,7 @@ class PushProcessed():
 
         self.upload_list = []
 
-    def sync(self):
+    def sync(self, overwrite = False):
         """main method to sync the data between the local file system and object
         storage
         """
@@ -460,7 +460,7 @@ class PushProcessed():
             ostore_path = os.path.normpath(os.path.join(self.ostore_dir, relative_file))
             LOGGER.debug(f"ostore_path: {ostore_path}")
 
-            if ostore_path not in ostore_files:
+            if ostore_path not in ostore_files or overwrite:
                 LOGGER.debug(f"ostore_path not in ostore_files: {ostore_path}")
                 self.upload_list.append((local_file, ostore_path))
 

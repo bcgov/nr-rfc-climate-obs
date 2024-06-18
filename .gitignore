@@ -68,4 +68,6 @@ scripts/python/tests/test_data/**
 
 venv_win/**
 
-junk.csv
+*.csv
+*.parquet
+*.db
