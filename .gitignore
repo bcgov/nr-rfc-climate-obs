@@ -71,3 +71,4 @@ venv_win/**
 *.csv
 *.parquet
 *.db
+**venv
