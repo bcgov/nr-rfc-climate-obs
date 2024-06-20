@@ -7,6 +7,7 @@ import sys
 sys.path.append(f'{os.getcwd()}/scripts/python')
 import climate_utils
 
+
 def format_data(data, source, var):
     match source:
         case 'fwx':
@@ -79,6 +80,7 @@ def update_climate_obs_raw(dt_list):
 
     crd_objfolder = 'RFC_DATA/CRD/parquet/'
     eccc_objfolder = 'RFC_DATA/ECCC/hourly/parquet/'
+
     #fwx_objfolder = 'F_WX/extracts/'
     fwx_objfolder = 'F_WX/hourly/'
     asp_objfolder = 'ASP/raw'
@@ -111,6 +113,7 @@ def update_climate_obs_raw(dt_list):
     asp_ta = asp_ta.loc[ind]
     asp_pc = asp_pc.loc[ind]
 
+
     #Check that all data is in correct time zone!
     TA_hrly_raw =update_data(TA_hrly_raw,fwx_ta)
     TA_hrly_raw =update_data(TA_hrly_raw,asp_ta)
@@ -125,6 +128,7 @@ def update_climate_obs_raw(dt_list):
     TA_hrly_raw = TA_hrly_raw.astype('float64')
     PC_hrly_raw = PC_hrly_raw.astype('float64')
     ClimateOBS_hrly_raw = pd.concat([TA_hrly_raw,PC_hrly_raw],keys=["TA","PC"])
+
     climate_utils.df_to_objstore(ClimateOBS_hrly_raw, ClimateOBShourly_raw_path)
     climate_utils.df_to_objstore(TA_hrly_raw, TA_hourly_raw_path)
     climate_utils.df_to_objstore(PC_hrly_raw, PC_hourly_raw_path)

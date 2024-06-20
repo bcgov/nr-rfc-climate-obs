@@ -44,6 +44,7 @@ hrly_end = end_date.replace(
                 microsecond=0) + datetime.timedelta(hours=2)
 current_hour = int(end_date.strftime('%H'))
 
+
 # setting up the path to the output data for the local data
 local_file_date_fmt = '%Y-%m-%d'
 date_str = end_date.strftime(local_file_date_fmt)
@@ -73,7 +74,6 @@ ostr_hrly_sync = remote_ostore_sync.PushProcessed(src_dir=local_hrly_path, ostor
 
 # don't bother doing anything if the data already exists in object storage
 if current_hour > 8 and not ostr_sync.ostore_file_exists(ostore_file_path):
-
     # now get the data and store remotely
     fwx_api = main_fwx_api.WildfireAPI(end_date=end_date)
     fwx_api.get_all_stations_hourlies(local_file_path)
