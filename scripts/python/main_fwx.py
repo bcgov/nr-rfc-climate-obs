@@ -26,7 +26,7 @@ LOGGER.info(f"starting {__name__}")
 
 # setting up the time window for pulling data
 default_days_from_present = int(os.getenv('DEFAULT_DAYS_FROM_PRESENT', 0))
-end_date = datetime.datetime.now() - datetime.timedelta(days=default_days_from_present)
+end_date = datetime.datetime.now() - datetime.timedelta(days=default_days_from_present) - datetime.timedelta(hours=2)
 end_date = end_date.replace(
                 hour=8,
                 minute=0,
@@ -42,6 +42,7 @@ hrly_end = end_date.replace(
                 minute=0,
                 second=0,
                 microsecond=0) + datetime.timedelta(hours=2)
+current_hour = int(end_date.strftime('%H'))
 
 # setting up the path to the output data for the local data
 local_file_date_fmt = '%Y-%m-%d'
@@ -71,7 +72,8 @@ ostr_hrly_sync = remote_ostore_sync.PushProcessed(src_dir=local_hrly_path, ostor
 
 
 # don't bother doing anything if the data already exists in object storage
-if not ostr_sync.ostore_file_exists(ostore_file_path):
+if current_hour > 8 and not ostr_sync.ostore_file_exists(ostore_file_path):
+
     # now get the data and store remotely
     fwx_api = main_fwx_api.WildfireAPI(end_date=end_date)
     fwx_api.get_all_stations_hourlies(local_file_path)
