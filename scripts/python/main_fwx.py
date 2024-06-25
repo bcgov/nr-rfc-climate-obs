@@ -26,7 +26,10 @@ LOGGER.info(f"starting {__name__}")
 
 # setting up the time window for pulling data
 default_days_from_present = int(os.getenv('DEFAULT_DAYS_FROM_PRESENT', 0))
+local_utcoffset = datetime.datetime.now(datetime.timezone.utc).astimezone().utcoffset()
+pst_utcoffset = datetime.timedelta(days=-1, seconds = 57600)
 end_date = datetime.datetime.now() - datetime.timedelta(days=default_days_from_present) - datetime.timedelta(hours=2)
+end_date = end_date + pst_utcoffset - local_utcoffset
 end_date = end_date.replace(
                 hour=8,
                 minute=0,
