@@ -221,36 +221,36 @@ def update_climate_obs_filled(dt_list):
 
             fill_stn = ''
 
-                prev_nan_count = float("inf") #Set prev_nan_count to inf so any valid numeric value will replace it in following loop
-                #Loop through adjacent stations, checking for valid data over data gap. Station with minimum missing data over the data gap is selected
-                for adjstn in adj_stns:
-                    if adjstn in TA_hrly_raw.columns:
-                        nan_count = sum(TA_hrly_raw.loc[gap_ind,raw_id[adjstn]].isna())
-                        if nan_count<prev_nan_count:
-                            fill_stn = adjstn
-                            prev_nan_count = nan_count
-                #Grab any numbers from column name:
-                fill_stn_num = ""
-                if any(adj_stns==fill_stn):
-                    fill_adj_dT = np.nan
-                    if gap_length <= 18:
-                        gap_start = gap_ind[0]
-                        gap_end = gap_ind[-1]
-                        training_period = pd.date_range(gap_start- datetime.timedelta(hours=3),gap_start- datetime.timedelta(hours=1),freq='h').union(pd.date_range(gap_end+datetime.timedelta(hours=1),gap_end+datetime.timedelta(hours=3),freq='h'))
-                        training_period = training_period.intersection(TA_hrly_raw.index)
-                        dT_training_period = TA_hrly_raw.loc[training_period,raw_id[fill_stn]] - TA_hrly_raw.loc[training_period,raw_id.iloc[stn_num]]
-                        dT_training_period.dropna(inplace=True)
-                        if len(dT_training_period)>0:
-                            fill_adj_dT = dT_training_period.mean()
-                    if np.isnan(fill_adj_dT):
-                        for c in adj_stns.index[adj_stns==fill_stn][0]:
-                            if c.isdigit():
-                                fill_stn_num = fill_stn_num + c
-                        fill_adj_col = 'AVE_dT' + fill_stn_num
-                        #Set temperature offset for infill station:
-                        fill_adj_dT = adj_stn_list.loc[stn_list[stn_num]][fill_adj_col]
-                    #Fill data gap with selected adjacent station after applying temperature offset for that station:
-                    TA_hrly_raw.loc[gap_ind,raw_id.iloc[stn_num]] = TA_hrly_raw.loc[gap_ind,raw_id[fill_stn]] + fill_adj_dT
+            prev_nan_count = float("inf") #Set prev_nan_count to inf so any valid numeric value will replace it in following loop
+            #Loop through adjacent stations, checking for valid data over data gap. Station with minimum missing data over the data gap is selected
+            for adjstn in adj_stns:
+                if adjstn in TA_hrly_raw.columns:
+                    nan_count = sum(TA_hrly_raw.loc[gap_ind,raw_id[adjstn]].isna())
+                    if nan_count<prev_nan_count:
+                        fill_stn = adjstn
+                        prev_nan_count = nan_count
+            #Grab any numbers from column name:
+            fill_stn_num = ""
+            if any(adj_stns==fill_stn):
+                fill_adj_dT = np.nan
+                if gap_length <= 18:
+                    gap_start = gap_ind[0]
+                    gap_end = gap_ind[-1]
+                    training_period = pd.date_range(gap_start- datetime.timedelta(hours=3),gap_start- datetime.timedelta(hours=1),freq='h').union(pd.date_range(gap_end+datetime.timedelta(hours=1),gap_end+datetime.timedelta(hours=3),freq='h'))
+                    training_period = training_period.intersection(TA_hrly_raw.index)
+                    dT_training_period = TA_hrly_raw.loc[training_period,raw_id[fill_stn]] - TA_hrly_raw.loc[training_period,raw_id.iloc[stn_num]]
+                    dT_training_period.dropna(inplace=True)
+                    if len(dT_training_period)>0:
+                        fill_adj_dT = dT_training_period.mean()
+                if np.isnan(fill_adj_dT):
+                    for c in adj_stns.index[adj_stns==fill_stn][0]:
+                        if c.isdigit():
+                            fill_stn_num = fill_stn_num + c
+                    fill_adj_col = 'AVE_dT' + fill_stn_num
+                    #Set temperature offset for infill station:
+                    fill_adj_dT = adj_stn_list.loc[stn_list[stn_num]][fill_adj_col]
+                #Fill data gap with selected adjacent station after applying temperature offset for that station:
+                TA_hrly_raw.loc[gap_ind,raw_id.iloc[stn_num]] = TA_hrly_raw.loc[gap_ind,raw_id[fill_stn]] + fill_adj_dT
 
     stn_intersect = TA_hrly_raw.columns.intersection(raw_id)
     TA_hrly_raw = TA_hrly_raw.loc[:,stn_intersect]
