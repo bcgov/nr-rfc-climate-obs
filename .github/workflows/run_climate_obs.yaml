@@ -40,7 +40,7 @@ jobs:
       ASP_OSTORE_PREPD_DATA_DIR: ASP/prepd
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       id: checkout
       with:
        fetch-depth: 0
@@ -83,7 +83,7 @@ jobs:
     # - name: Install Office
     #   run: choco install office365business --version=16731.20354 --params "'/exclude:Access Groove Lync OneDrive OneNote Outlook Publisher /updates:FALSE /eula:TRUE'"
 
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: '3.11'
 
