@@ -1,4 +1,4 @@
-FROM python:3.11.4-alpine as build
+FROM python:3.12.4-alpine as build
 WORKDIR /app
 COPY ["scripts/python/requirements.txt", \
       "/app/"]
@@ -15,7 +15,7 @@ RUN python3 -m ensurepip && \
       cp -r tmp/* venv/lib/python3.11/site-packages/botocore/data && \
       rm -rf tmp
 
-FROM python:3.11.4-alpine
+FROM python:3.12.4-alpine
 WORKDIR /app
 COPY --from=build /app/venv /app/venv
 COPY ["scripts/python/logging.config", \
