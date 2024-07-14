@@ -1,4 +1,4 @@
-FROM rhub/r-minimal:4.2.3 as STAGE1
+FROM rhub/r-minimal:4.5.0 as STAGE1
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ RUN R -e "install.packages('renv',version = '0.17.3', repos = 'https://cloud.r-p
     R -e "renv::init(bare=TRUE) ; renv::restore() ; renv::isolate()"
 
 # copy renv to minimal without the dev tools to save space
-FROM rhub/r-minimal:4.2.3
+FROM rhub/r-minimal:4.5.0
 WORKDIR /app
 
 # copy the r script
