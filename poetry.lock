@@ -59,10 +59,14 @@ platformdirs = ">=2"
 [package.extras]
 colorama = ["colorama (>=0.4.3)"]
 <<<<<<< HEAD
+<<<<<<< HEAD
 d = ["aiohttp (>=3.7.4)", "aiohttp (>=3.7.4,!=3.9.0)"]
 =======
 d = ["aiohttp (>=3.7.4)"]
 >>>>>>> da258d6 (chore(deps): update all non-major dependencies)
+=======
+d = ["aiohttp (>=3.7.4)", "aiohttp (>=3.7.4,!=3.9.0)"]
+>>>>>>> 5d2cd23 (chore(deps): update dependency black to v24 [security])
 jupyter = ["ipython (>=7.8.0)", "tokenize-rt (>=3.2.0)"]
 uvloop = ["uvloop (>=0.15.2)"]
 
@@ -684,7 +688,11 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.13"
 <<<<<<< HEAD
+<<<<<<< HEAD
 content-hash = "c8180a81dd50b301cba6b543807feb2b9c90697efa125420d5d79d9e6f260382"
 =======
 content-hash = "b21b5468c3bd8254c1131c6764652a0ec6f97a77e87331cd4719be89d7849e45"
 >>>>>>> da258d6 (chore(deps): update all non-major dependencies)
+=======
+content-hash = "b06a14c61413bbd423ab6cbb75007b54afc4410b081a01e7129b0843a4299380"
+>>>>>>> 5d2cd23 (chore(deps): update dependency black to v24 [security])
