@@ -1,4 +1,4 @@
 nr_objstore_util==0.10.0
 requests==2.32.3
 beautifulsoup4==4.12.3
-python-dotenv==1.0.0
+python-dotenv==1.0.1
