@@ -67,7 +67,7 @@ jobs:
         echo "COMMIT_SHA=$sha" >> $GITHUB_ENV
 
     # checkout the repo sha
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       id: checkout
       with:
         ref: ${{ env.COMMIT_SHA }}
@@ -81,7 +81,7 @@ jobs:
         namespace: ${{ vars.OC_NAMESPACE }}
 
     # add the image tag 'prod' to the firedata_pipe image
-    - uses: shrink/actions-docker-registry-tag@v3
+    - uses: shrink/actions-docker-registry-tag@v4
       with:
         registry: ghcr.io
         #repository: ${{ github.repository }}/${{ matrix.package }}
@@ -90,7 +90,7 @@ jobs:
         tags: prod
 
     # add the image tag 'prod' to the zxs_pipe image
-    - uses: shrink/actions-docker-registry-tag@v3
+    - uses: shrink/actions-docker-registry-tag@v4
       with:
         registry: ghcr.io
         #repository: ${{ github.repository }}/${{ matrix.package }}
