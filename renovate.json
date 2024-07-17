@@ -3,4 +3,5 @@
   "extends": [
     "local>bcgov/renovate-config"
   ]
+  "ignorePaths": ["**/scripts/**"]
 }
