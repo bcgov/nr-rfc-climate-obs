@@ -167,8 +167,7 @@ if __name__ == '__main__':
     ostore = NRObjStoreUtil.ObjectStoreUtil()
 
     # default is to use today's date
-    #days_back = int(os.getenv('DEFAULT_DAYS_FROM_PRESENT', 0))
-    days_back = 1
+    days_back = int(os.getenv('DEFAULT_DAYS_FROM_PRESENT', 0))
     #Github actions runs in UTC, convert to PST for script to work in github:
     current_date = datetime.datetime.now() - datetime.timedelta(hours=8) - datetime.timedelta(days=days_back)
     #current_date = datetime.datetime.now() - datetime.timedelta(days=days_back)
