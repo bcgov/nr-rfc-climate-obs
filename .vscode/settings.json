@@ -19,4 +19,8 @@
     "files.trimTrailingWhitespace": true,
     "terminal.integrated.scrollback": 5000,
     "editor.hover.enabled": false,
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.useLibraryCodeForTypes": true,
+    "python.languageServer": "Pylance", // or "Jedi"
+    "python.defaultInterpreterPath": "venv/bin/python3",
 }
