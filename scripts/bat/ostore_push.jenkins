@@ -58,6 +58,7 @@ node('zavijava_rfc') {
                 echo %Date%
                 set current_year=%Date:~0,4%
                 echo current year is %current_year%
+                set YYYYMMDD=%DATE:~0,4%%DATE:~5,2%%DATE:~8,2%
 
                 :: verify that the number is numeric, otherwise assume data format
                 :: is Thu 10/19/2023
@@ -93,6 +94,12 @@ node('zavijava_rfc') {
                     --check-first ^
                     nrsobjstore:rfcdata\\dischargeOBS\\PVDD ^
                     \\\\%PROD_SERVER%\\Shared\\Real-time_Data\\PVDD
+
+                :: copy the CMC Ensemble data, using copy so that files on dest and not on src do not get deleted
+                .\\rclone.exe copy ^
+                    --check-first ^
+                    nrsobjstore:rfcdata\\cmc\\ensemble_weather\\TXT\\combined\\%YYYYMMDD%12 ^
+                    \\\\%TEST_SERVER%\\Shared\\CMC_GRIB2_ENS\\TXT_OBJ
 
                 :: delete the rclone config
                 del %RCLONE_CONFIG%
