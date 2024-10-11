@@ -58,7 +58,7 @@ node('zavijava_rfc') {
                 echo %Date%
                 set current_year=%Date:~0,4%
                 echo current year is %current_year%
-                set YYYYMMDD=%DATE:~0,4%%DATE:~5,2%%DATE:~8,2%
+                set YYYYMMDD=%DATE:~10,4%%DATE:~4,2%%DATE:~7,2%
 
                 :: verify that the number is numeric, otherwise assume data format
                 :: is Thu 10/19/2023
