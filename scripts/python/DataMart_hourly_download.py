@@ -173,7 +173,7 @@ if __name__ == '__main__':
     #current_date = datetime.datetime.now() - datetime.timedelta(days=days_back)
     #If downloading past days, set hour to 23 so entire day is downloaded (scripts only attempts download up to current hour for present day):
     if days_back>0:
-        current_date.replace(hour=23)
+        current_date = current_date.replace(hour=23)
 
     #Grab list of stations to download data for from object store:
     #This is the updated station list for ClimateOBS
