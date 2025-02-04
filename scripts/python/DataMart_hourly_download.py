@@ -162,6 +162,38 @@ class data_config():
         #Save temperature/precip dataframes as csv files and send to object store:
         df_to_objstore(output,output_obj,self.onprem)
 
+    def check_for_missing_data(self, date):
+        default_date_format = '%Y%m%d'
+        check_date = date.replace(hour=23) - datetime.timedelta(days=1)
+        local_file_path = 'raw_data/temp_data'
+        if not os.path.exists(local_file_path):
+            os.makedirs(local_file_path)
+
+        if self.onprem == False:
+            all_data_objs = ostore.list_objects(self.objfolder,return_file_names_only=True)
+        else:
+            all_data_objs = os.listdir(self.objfolder)
+
+        complete = False
+        missing_date_list = list()
+        while complete == False and len(missing_date_list)<=5:
+            dt_txt = check_date.strftime('%Y%m%d')
+            all_data_objpath = os.path.join(self.objfolder,f'{dt_txt}.parquet')
+
+            if all_data_objpath in all_data_objs:
+                #ostore.get_object(local_path=local_data_fpath, file_path=all_data_objpath)
+                #output = pd.read_parquet(local_data_fpath)
+                output_check = objstore_to_df(all_data_objpath,self.onprem)
+                if sum(output_check['f_read']!=True)>output_check.index.levels[0].size:
+                    missing_date_list.append(check_date)
+                    check_date = check_date - datetime.timedelta(days=1)
+                else:
+                    complete = True
+            else:
+                missing_date_list.append(check_date)
+                check_date = check_date - datetime.timedelta(days=1)
+        return missing_date_list
+
 
 if __name__ == '__main__':
     ostore = NRObjStoreUtil.ObjectStoreUtil()
@@ -170,8 +202,8 @@ if __name__ == '__main__':
     days_back = int(os.getenv('DEFAULT_DAYS_FROM_PRESENT', 0))
     #days_back = 1
     #Github actions runs in UTC, convert to PST for script to work in github:
-    current_date = datetime.datetime.now() - datetime.timedelta(hours=8) - datetime.timedelta(days=days_back)
-    #current_date = datetime.datetime.now() - datetime.timedelta(days=days_back)
+    #current_date = datetime.datetime.now() - datetime.timedelta(hours=8) - datetime.timedelta(days=days_back)
+    current_date = datetime.datetime.now() - datetime.timedelta(days=days_back)
     #If downloading past days, set hour to 23 so entire day is downloaded (scripts only attempts download up to current hour for present day):
     if days_back>0:
         current_date = current_date.replace(hour=23)
@@ -214,3 +246,11 @@ if __name__ == '__main__':
     objpath = 'RFC_DATA/CRD/csv/'
     CRD.write_data(current_date,objpath,'air_temp','TA')
     CRD.write_data(current_date,objpath,'pcpn_amt_pst1hr','PC')
+
+    missing_date_list = ECCC.check_for_missing_data(current_date)
+    objpath = 'RFC_DATA/ECCC/hourly/csv/'
+    for dt in missing_date_list:
+        ECCC.update_data(dt)
+        ECCC.write_data(dt,objpath,'air_temp','TA')
+        ECCC.write_data(dt,objpath,'pcpn_amt_pst1hr','PC')
+
