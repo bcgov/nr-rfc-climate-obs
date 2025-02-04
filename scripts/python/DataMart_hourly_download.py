@@ -202,8 +202,8 @@ if __name__ == '__main__':
     days_back = int(os.getenv('DEFAULT_DAYS_FROM_PRESENT', 0))
     #days_back = 1
     #Github actions runs in UTC, convert to PST for script to work in github:
-    #current_date = datetime.datetime.now() - datetime.timedelta(hours=8) - datetime.timedelta(days=days_back)
-    current_date = datetime.datetime.now() - datetime.timedelta(days=days_back)
+    current_date = datetime.datetime.now() - datetime.timedelta(hours=8) - datetime.timedelta(days=days_back)
+    #current_date = datetime.datetime.now() - datetime.timedelta(days=days_back)
     #If downloading past days, set hour to 23 so entire day is downloaded (scripts only attempts download up to current hour for present day):
     if days_back>0:
         current_date = current_date.replace(hour=23)
