@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 import pandas as pd
 import numpy as np
 import NRUtil.NRObjStoreUtil as NRObjStoreUtil
+import pytz
 
 
 def isnumber(x):
@@ -202,7 +203,8 @@ if __name__ == '__main__':
     days_back = int(os.getenv('DEFAULT_DAYS_FROM_PRESENT', 0))
     #days_back = 1
     #Github actions runs in UTC, convert to PST for script to work in github:
-    current_date = datetime.datetime.now() - datetime.timedelta(hours=8) - datetime.timedelta(days=days_back)
+    tz = pytz.timezone('America/Vancouver')
+    current_date = datetime.datetime.now(tz)- datetime.timedelta(days=days_back)
     #current_date = datetime.datetime.now() - datetime.timedelta(days=days_back)
     #If downloading past days, set hour to 23 so entire day is downloaded (scripts only attempts download up to current hour for present day):
     if days_back>0:
