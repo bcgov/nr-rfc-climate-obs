@@ -82,7 +82,7 @@ class data_config():
     def update_data(self, date):
         default_date_format = '%Y%m%d'
         dt_txt = date.strftime('%Y%m%d')
-        dt_range = pd.date_range(start = date.strftime('%Y/%m/%d 00:00'), end = date.strftime('%Y/%m/%d 23:00'), freq = 'H')
+        dt_range = pd.date_range(start = date.strftime('%Y/%m/%d 00:00'), end = date.strftime('%Y/%m/%d 23:00'), freq = 'h')
         #Conver dt_range to UTC since data on datamart is in UTC:
         #Limit dt_range_utc to < current time so that it is not trying to grab non-existant data:
         dt_range_utc = dt_range[0:date.hour+1] + datetime.timedelta(hours=8)
@@ -136,7 +136,7 @@ class data_config():
                     if os.path.exists(local_filename):
                         output.loc[(stn,dt - datetime.timedelta(hours=8)),self.var_names] = retrieve_xml_values(local_filename,self.var_names).values
                         #Set f_read to True so script does not re-download file in subsequent runs:
-                        output.loc[stn,dt - datetime.timedelta(hours=8)].iloc[-1] = True
+                        output.loc[(stn,dt - datetime.timedelta(hours=8)),'f_read'] = True
                         os.remove(local_filename)
 
         #Save dataframe to parquet file and send to object store:
@@ -152,7 +152,7 @@ class data_config():
         output = data.loc[:,src_varname].unstack(0)[self.src_stn_list]
 
         #Remove non-numeric (and nan) values:
-        output[~output.applymap(isnumber)] = ''
+        output[~output.map(isnumber)] = ''
 
         #Set local and object store filepaths:
         output_obj = os.path.join(objpath,f'{out_varname}_{dt_txt}.csv')

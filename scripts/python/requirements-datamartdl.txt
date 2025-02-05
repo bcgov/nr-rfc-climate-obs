@@ -1,5 +1,5 @@
-requests==2.30.0
-pandas==2.0.1
-numpy==1.24.3
-nr-objstore-util==0.10.0
-pyarrow==12.0.0
+requests==2.32.3
+pandas==2.2.3
+numpy==2.2.2
+nr_objstore_util==0.11.0
+pyarrow==19.0.0
