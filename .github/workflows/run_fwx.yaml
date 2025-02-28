@@ -15,7 +15,7 @@ jobs:
       run:
         shell: bash
     name: 'Download Wildfire xml climate obs files'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     environment: PROD
     env:
       OBJ_STORE_BUCKET: ${{ secrets.OBJ_STORE_BUCKET }}
