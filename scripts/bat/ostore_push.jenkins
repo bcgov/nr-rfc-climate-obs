@@ -89,11 +89,16 @@ node('zavijava_rfc') {
                     nrsobjstore:rfcdata\\RFC_DATA\\ECCC\\hourly\\csv ^
                     \\\\%TEST_SERVER%\\Shared\\MPOML\\HOURLY\\csv
 
-                :: copy the PVDD data, using copy so that files on dest and not on src do not get deleted
+                :: copy the PVDD data to Prod, using copy so that files on dest and not on src do not get deleted
                 .\\rclone.exe copy ^
                     --check-first ^
                     nrsobjstore:rfcdata\\dischargeOBS\\PVDD ^
                     \\\\%PROD_SERVER%\\Shared\\Real-time_Data\\PVDD
+                :: copy the PVDD data to Test, using copy so that files on dest and not on src do not get deleted
+                .\\rclone.exe copy ^
+                    --check-first ^
+                    nrsobjstore:rfcdata\\dischargeOBS\\PVDD ^
+                    \\\\%TEST_SERVER%\\Shared\\Real-time_Data\\PVDD
 
                 :: copy the CMC Ensemble data, using copy so that files on dest and not on src do not get deleted
                 .\\rclone.exe copy ^
