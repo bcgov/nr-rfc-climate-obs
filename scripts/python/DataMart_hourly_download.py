@@ -220,8 +220,8 @@ if __name__ == '__main__':
     src_stn_list = 'C' + stn_list
 
     #Template for url to download from:
-    #url_template = 'https://dd.weather.gc.ca/observations/swob-ml/{date_str}/'
-    url_template = 'http://hpfx.collab.science.gc.ca/{date_str}/WXO-DD/observations/swob-ml/{date_str}/'
+    url_template = 'https://dd.weather.gc.ca/observations/swob-ml/{date_str}/'
+    #url_template = 'http://hpfx.collab.science.gc.ca/{date_str}/WXO-DD/observations/swob-ml/{date_str}/'
 
     #Template for file names:
     fname_template = ['{stn}/{dt_str}-{stn}-MAN-swob.xml','{stn}/{dt_str}-{stn}-AUTO-swob.xml']
