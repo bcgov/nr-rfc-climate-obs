@@ -246,7 +246,7 @@ if __name__ == '__main__':
         ECCC = data_config(objfolder,False,stn_list,src_stn_list,url_template,fname_template,var_names)
         ECCC.update_data(current_date)
     except:
-        url_template = 'https://dd.weather.gc.ca/observations/swob-ml/{date_str}/'
+        url_template = 'https://dd.weather.gc.ca/{date_str}/WXO-DD/observations/swob-ml/{date_str}/'
         LOGGER.info(f"Download failed. Trying ECCC download from {url_template}:")
         ECCC = data_config(objfolder,False,stn_list,src_stn_list,url_template,fname_template,var_names)
         ECCC.update_data(current_date)
