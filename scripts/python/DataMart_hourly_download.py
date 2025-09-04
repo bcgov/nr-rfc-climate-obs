@@ -7,6 +7,16 @@ import numpy as np
 import NRUtil.NRObjStoreUtil as NRObjStoreUtil
 import pytz
 
+import logging
+import logging.config
+
+# setup the logging
+cur_path = os.path.dirname(__file__)
+log_config_path = os.path.join(cur_path, 'logging.config')
+
+logging.config.fileConfig(log_config_path, disable_existing_loggers=False)
+LOGGER = logging.getLogger(__name__)
+LOGGER.info(f"starting {__name__}")
 
 def isnumber(x):
     try:
@@ -18,6 +28,7 @@ def isnumber(x):
         return False
 
 def objstore_to_df(objpath,onprem=False):
+    LOGGER.info(f"objstore_to_df retrieving file from {objpath}")
     filename = objpath.split("/")[-1]
     filetype = filename.split(".")[-1]
     if onprem:
@@ -39,6 +50,7 @@ def objstore_to_df(objpath,onprem=False):
     return output
 
 def df_to_objstore(df, objpath, onprem=False):
+    LOGGER.info(f"df_to_objstore writing dataframe to {objpath}")
     filename = objpath.split("/")[-1]
     filetype = filename.split(".")[-1]
     if onprem:
@@ -80,6 +92,7 @@ class data_config():
         self.var_names = var_names
 
     def update_data(self, date):
+        LOGGER.info(f"updating data for date {date}")
         default_date_format = '%Y%m%d'
         dt_txt = date.strftime('%Y%m%d')
         dt_range = pd.date_range(start = date.strftime('%Y/%m/%d 00:00'), end = date.strftime('%Y/%m/%d 23:00'), freq = 'h')
@@ -219,10 +232,6 @@ if __name__ == '__main__':
     stn_list = stn_metadata.TC_ID
     src_stn_list = 'C' + stn_list
 
-    #Template for url to download from:
-    url_template = 'https://dd.weather.gc.ca/observations/swob-ml/{date_str}/'
-    #url_template = 'http://hpfx.collab.science.gc.ca/{date_str}/WXO-DD/observations/swob-ml/{date_str}/'
-
     #Template for file names:
     fname_template = ['{stn}/{dt_str}-{stn}-MAN-swob.xml','{stn}/{dt_str}-{stn}-AUTO-swob.xml']
 
@@ -230,8 +239,17 @@ if __name__ == '__main__':
     var_names = ['air_temp','avg_air_temp_pst1hr','pcpn_amt_pst1hr']
     objfolder = 'RFC_DATA/ECCC/hourly/parquet/'
 
-    ECCC = data_config(objfolder,False,stn_list,src_stn_list,url_template,fname_template,var_names)
-    ECCC.update_data(current_date)
+    #try downloading from hpfx first. If this fails, then try downloading from dd.weather.gc.ca:
+    try:
+        url_template = 'http://hpfx.collab.science.gc.ca/{date_str}/WXO-DD/observations/swob-ml/{date_str}/'
+        LOGGER.info(f"Trying ECCC download from {url_template}:")
+        ECCC = data_config(objfolder,False,stn_list,src_stn_list,url_template,fname_template,var_names)
+        ECCC.update_data(current_date)
+    except:
+        url_template = 'https://dd.weather.gc.ca/observations/swob-ml/{date_str}/'
+        LOGGER.info(f"Download failed. Trying ECCC download from {url_template}:")
+        ECCC = data_config(objfolder,False,stn_list,src_stn_list,url_template,fname_template,var_names)
+        ECCC.update_data(current_date)
 
     objpath = 'RFC_DATA/ECCC/hourly/csv/'
     ECCC.write_data(current_date,objpath,'air_temp','TA')
