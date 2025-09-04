@@ -257,11 +257,18 @@ if __name__ == '__main__':
 
     crd_objfolder = 'RFC_DATA/CRD/parquet/'
     crd_stn_list = ['fw001','fw003','fw004','fw005','fw006','fw007','fw008','fw009','hy031']
-    crd_url_template = 'http://hpfx.collab.science.gc.ca/{date_str}/WXO-DD/observations/swob-ml/partners/bc-crd/{date_str}/'
     crd_fname_template = ['{stn}/{dt_str}-bc-crd-{stn}-{stn}-AUTO-swob.xml']
     crd_var_names = ['air_temp','pcpn_amt_pst1hr']
-    CRD = data_config(crd_objfolder,False,crd_stn_list,crd_stn_list,crd_url_template,crd_fname_template,crd_var_names)
-    CRD.update_data(current_date)
+    try:
+        crd_url_template = 'http://hpfx.collab.science.gc.ca/{date_str}/WXO-DD/observations/swob-ml/partners/bc-crd/{date_str}/'
+        LOGGER.info(f"Trying CRD download from {crd_url_template}:")
+        CRD = data_config(crd_objfolder,False,crd_stn_list,crd_stn_list,crd_url_template,crd_fname_template,crd_var_names)
+        CRD.update_data(current_date)
+    except:
+        crd_url_template = 'https://dd.weather.gc.ca/{date_str}/WXO-DD/observations/swob-ml/partners/bc-crd/{date_str}/'
+        LOGGER.info(f"Download failed. Trying CRD download from {url_template}:")
+        CRD = data_config(crd_objfolder,False,crd_stn_list,crd_stn_list,crd_url_template,crd_fname_template,crd_var_names)
+        CRD.update_data(current_date)
 
     objpath = 'RFC_DATA/CRD/csv/'
     CRD.write_data(current_date,objpath,'air_temp','TA')
