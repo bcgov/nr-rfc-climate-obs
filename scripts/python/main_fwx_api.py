@@ -180,7 +180,8 @@ class WildfireAPI:
                 hourly_row.append(station_hourly[property[0]])
             else:
                 hourly_row.append(property[2])
-        hourly_row_str_vals = [str(val) for val in hourly_row]
+        #hourly_row_str_vals = [str(val) for val in hourly_row]
+        hourly_row_str_vals = [str(val) if str(val).replace('.','',1).isdigit() else '' for val in hourly_row]
         hourly_row_str = ','.join(hourly_row_str_vals) + '\n'
         return hourly_row_str
 
