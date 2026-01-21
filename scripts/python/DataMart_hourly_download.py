@@ -137,6 +137,7 @@ class data_config():
                 if output.loc[(stn,dt - datetime.timedelta(hours=8)),'f_read']!=True:
                     #Try filename format for automatic station, else try format for manual station:
                     for url in full_url:
+                        LOGGER.info(f"Downloading url: {url}")
                         with requests.get(url, stream=True) as r:
                             #r.raise_for_status()
                             #If file location exists, proceed with file download:
@@ -144,6 +145,7 @@ class data_config():
                                 with open(local_filename, 'wb') as f:
                                     for chunk in r.iter_content(chunk_size=8192):
                                         f.write(chunk)
+                                LOGGER.info(f"Download succeeded")
                                 break
                     #If file was downloaded succefully, write variables to dataframe:
                     if os.path.exists(local_filename):
