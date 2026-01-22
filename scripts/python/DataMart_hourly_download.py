@@ -81,6 +81,22 @@ def retrieve_xml_values(xml_file,var_names):
                 output.loc[0,child.attrib['name']] = child.attrib['value']
     return output
 
+def url_exists(url):
+    """
+    Checks if a URL exists by sending a HEAD request.
+    Returns True for status codes in the 2xx or 3xx range,
+    and False for client errors (4xx) or server errors (5xx),
+    or connection issues.
+    """
+    try:
+        # Use allow_redirects=True to handle redirects, which are common for URLs like http://google.com
+        response = requests.head(url, allow_redirects=True, timeout=0.1)
+        # Check if the status code indicates success (2xx) or redirection (3xx)
+        return 200 <= response.status_code < 400
+    except requests.exceptions.RequestException:
+        # This handles ConnectionError, HTTPError, Timeout, etc.
+        return False
+
 class data_config():
     def __init__(self, objfolder, onprem, stn_list, src_stn_list, url_template, fname_template, var_names):
         self.objfolder = objfolder
@@ -116,20 +132,28 @@ class data_config():
             output_ind = pd.MultiIndex.from_product([self.src_stn_list,dt_range], names=["Station", "DateTime"])
             output = pd.DataFrame(data=None,index=output_ind,columns=self.var_names+['f_read'])
 
+        if type(self.fname_template)!=list:
+            self.fname_template=[self.fname_template]
         #Download ECCC weather observation data from DataMart, store values in dataframe:
         #Loop through each station in station list, each hour in datetime range:
-        for stn in self.src_stn_list:
-            for dt in dt_range_utc:
+        #for stn in self.src_stn_list:
+        #    for dt in dt_range_utc:
+        for dt in dt_range_utc:
+            dt_str = dt.strftime('%Y-%m-%d-%H00')
+            date_str = dt.strftime(default_date_format)
+            remote_location = self.url_template.format(date_str=date_str)
+            if not url_exists(remote_location):
+                LOGGER.info(f"URL for {date_str} does not exist, skipping to next date")
+                continue
+            for stn in self.src_stn_list:
                 #Format html string for data location:
-                dt_str = dt.strftime('%Y-%m-%d-%H00')
-                date_str = dt.strftime(default_date_format)
-
-                remote_location = self.url_template.format(date_str=date_str)
-                if type(self.fname_template)!=list:
-                    self.fname_template=[self.fname_template]
                 fname = [str.format(stn=stn,dt_str=dt_str) for str in self.fname_template]
                 #file names differs between manual and automated stations, try both:
                 full_url = [os.path.join(remote_location,filename) for filename in fname]
+                if not url_exists(os.path.dirname(full_url[0])):
+                    LOGGER.info(f"URL for {stn} does not exist, skipping to next station")
+                    self.src_stn_list.remove(stn)
+                    continue
                 local_filename = os.path.join(local_file_path,f'{stn}-{dt_str}.xml')
 
                 #Download file and write to local file name:
@@ -138,10 +162,8 @@ class data_config():
                     #Try filename format for automatic station, else try format for manual station:
                     for url in full_url:
                         LOGGER.info(f"Downloading url: {url}")
-                        with requests.get(url, stream=True) as r:
-                            #r.raise_for_status()
-                            #If file location exists, proceed with file download:
-                            if r.status_code == requests.codes.ok:
+                        if url_exists(url):
+                            with requests.get(url, stream=True) as r:
                                 with open(local_filename, 'wb') as f:
                                     for chunk in r.iter_content(chunk_size=8192):
                                         f.write(chunk)
