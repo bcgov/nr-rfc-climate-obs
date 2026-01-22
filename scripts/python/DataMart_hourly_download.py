@@ -90,7 +90,8 @@ def url_exists(url):
     """
     try:
         # Use allow_redirects=True to handle redirects, which are common for URLs like http://google.com
-        response = requests.head(url, allow_redirects=True, timeout=0.1)
+        response = requests.head(url, allow_redirects=True)
+        #response = requests.head(url, allow_redirects=True, timeout=0.1)
         # Check if the status code indicates success (2xx) or redirection (3xx)
         return 200 <= response.status_code < 400
     except requests.exceptions.RequestException:
@@ -152,7 +153,7 @@ class data_config():
                 full_url = [os.path.join(remote_location,filename) for filename in fname]
                 if not url_exists(os.path.dirname(full_url[0])):
                     LOGGER.info(f"URL for {stn} does not exist, skipping to next station")
-                    self.src_stn_list.remove(stn)
+                    self.src_stn_list = self.src_stn_list[self.src_stn_list != stn]
                     continue
                 local_filename = os.path.join(local_file_path,f'{stn}-{dt_str}.xml')
 
@@ -257,7 +258,7 @@ if __name__ == '__main__':
     src_stn_list = 'C' + stn_list
 
     #Template for file names:
-    fname_template = ['{stn}/{dt_str}-{stn}-MAN-swob.xml','{stn}/{dt_str}-{stn}-AUTO-swob.xml']
+    fname_template = ['{stn}/{dt_str}-{stn}-AUTO-swob.xml','{stn}/{dt_str}-{stn}-MAN-swob.xml']
 
     #List of variables to grab data for:
     var_names = ['air_temp','avg_air_temp_pst1hr','pcpn_amt_pst1hr']
