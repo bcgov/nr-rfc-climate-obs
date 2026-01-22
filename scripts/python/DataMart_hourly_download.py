@@ -111,7 +111,7 @@ class data_config():
     def update_data(self, date):
         LOGGER.info(f"updating data for date {date}")
         default_date_format = '%Y%m%d'
-        dt_txt = date.strftime('%Y%m%d')
+        dt_txt = date.strftime(default_date_format)
         dt_range = pd.date_range(start = date.strftime('%Y/%m/%d 00:00'), end = date.strftime('%Y/%m/%d 23:00'), freq = 'h')
         #Conver dt_range to UTC since data on datamart is in UTC:
         #Limit dt_range_utc to < current time so that it is not trying to grab non-existant data:
@@ -139,22 +139,31 @@ class data_config():
         #Loop through each station in station list, each hour in datetime range:
         #for stn in self.src_stn_list:
         #    for dt in dt_range_utc:
+        stn_download_list = list(self.src_stn_list)
+        valid_url_list = list()
         for dt in dt_range_utc:
             dt_str = dt.strftime('%Y-%m-%d-%H00')
             date_str = dt.strftime(default_date_format)
             remote_location = self.url_template.format(date_str=date_str)
-            if not url_exists(remote_location):
-                LOGGER.info(f"URL for {date_str} does not exist, skipping to next date")
-                continue
-            for stn in self.src_stn_list:
+            if remote_location not in valid_url_list:
+                if url_exists(remote_location):
+                    valid_url_list.append(remote_location)
+                else:
+                    LOGGER.info(f"URL for {date_str} does not exist, skipping to next date")
+                    continue
+            for stn in stn_download_list:
                 #Format html string for data location:
                 fname = [str.format(stn=stn,dt_str=dt_str) for str in self.fname_template]
                 #file names differs between manual and automated stations, try both:
                 full_url = [os.path.join(remote_location,filename) for filename in fname]
-                if not url_exists(os.path.dirname(full_url[0])):
-                    LOGGER.info(f"URL for {stn} does not exist, skipping to next station")
-                    self.src_stn_list = self.src_stn_list[self.src_stn_list != stn]
-                    continue
+                stn_url = os.path.dirname(full_url[0])
+                if stn_url not in valid_url_list:
+                    if url_exists(stn_url):
+                        valid_url_list.append(stn_url)
+                    else:
+                        LOGGER.info(f"URL for {stn} does not exist, skipping to next station")
+                        stn_download_list.remove(stn)
+                        continue
                 local_filename = os.path.join(local_file_path,f'{stn}-{dt_str}.xml')
 
                 #Download file and write to local file name:
