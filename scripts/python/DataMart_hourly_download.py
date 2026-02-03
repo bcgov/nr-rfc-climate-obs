@@ -149,6 +149,7 @@ class data_config():
                 if url_exists(remote_location):
                     valid_url_list.append(remote_location)
                 else:
+                    dt_range_utc = dt_range_utc[dt_range_utc.day != dt.day]
                     LOGGER.info(f"URL for {date_str} does not exist, skipping to next date")
                     continue
             for stn in stn_download_list:
@@ -232,7 +233,7 @@ class data_config():
                 #ostore.get_object(local_path=local_data_fpath, file_path=all_data_objpath)
                 #output = pd.read_parquet(local_data_fpath)
                 output_check = objstore_to_df(all_data_objpath,self.onprem)
-                if sum(output_check['f_read']!=True)>output_check.index.levels[0].size:
+                if sum(output_check['f_read']!=True)>2*output_check.index.levels[0].size:
                     missing_date_list.append(check_date)
                     check_date = check_date - datetime.timedelta(days=1)
                 else:
