@@ -233,7 +233,8 @@ class data_config():
                 #ostore.get_object(local_path=local_data_fpath, file_path=all_data_objpath)
                 #output = pd.read_parquet(local_data_fpath)
                 output_check = objstore_to_df(all_data_objpath,self.onprem)
-                if sum(output_check['f_read']!=True)>2*output_check.index.levels[0].size:
+                stn_count = output_check.index.get_level_values('Station').nunique()
+                if output_check.groupby(level='DateTime')['f_read'].sum().min() < 0.9*stn_count:
                     missing_date_list.append(check_date)
                     check_date = check_date - datetime.timedelta(days=1)
                 else:
