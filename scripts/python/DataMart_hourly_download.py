@@ -143,6 +143,7 @@ class data_config():
         stn_download_list = list(self.src_stn_list)
         valid_url_list = list()
         for dt in dt_range_utc:
+            dt_pacific = dt.tz_convert('America/Vancouver').replace(tzinfo=None)
             dt_str = dt.strftime('%Y-%m-%d-%H00')
             date_str = dt.strftime(default_date_format)
             remote_location = self.url_template.format(date_str=date_str)
@@ -171,7 +172,7 @@ class data_config():
 
                 #Download file and write to local file name:
                 #Check if file for station/time has already been read in, skip file download if so:
-                if output.loc[(stn,dt - datetime.timedelta(hours=8)),'f_read']!=True:
+                if output.loc[(stn, dt_pacific),'f_read']!=True:
                     #Try filename format for automatic station, else try format for manual station:
                     for url in full_url:
                         if url_exists(url):
@@ -186,9 +187,9 @@ class data_config():
                             LOGGER.info(f"URL does not exist: {url}")
                     #If file was downloaded succefully, write variables to dataframe:
                     if os.path.exists(local_filename):
-                        output.loc[(stn,dt - datetime.timedelta(hours=8)),self.var_names] = retrieve_xml_values(local_filename,self.var_names).values
+                        output.loc[(stn, dt_pacific),self.var_names] = retrieve_xml_values(local_filename,self.var_names).values
                         #Set f_read to True so script does not re-download file in subsequent runs:
-                        output.loc[(stn,dt - datetime.timedelta(hours=8)),'f_read'] = True
+                        output.loc[(stn, dt_pacific),'f_read'] = True
                         os.remove(local_filename)
 
         #Save dataframe to parquet file and send to object store:
