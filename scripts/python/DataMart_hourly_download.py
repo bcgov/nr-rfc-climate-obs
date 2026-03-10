@@ -142,9 +142,13 @@ class data_config():
         #    for dt in dt_range_utc:
         stn_download_list = list(self.src_stn_list)
         valid_url_list = list()
+        skip_date = list()
         for dt in dt_range_utc:
             dt_pacific = dt.tz_convert('America/Vancouver').replace(tzinfo=None)
             dt_str = dt.strftime('%Y-%m-%d-%H00')
+            if dt.day in skip_date:
+                LOGGER.info(f"Skipping {dt_str}")
+                continue
             date_str = dt.strftime(default_date_format)
             remote_location = self.url_template.format(date_str=date_str)
             if remote_location not in valid_url_list:
@@ -152,7 +156,7 @@ class data_config():
                     valid_url_list.append(remote_location)
                     LOGGER.info(f"URL {remote_location} exists, proceeding with download")
                 else:
-                    dt_range_utc = dt_range_utc[dt_range_utc.day != dt.day]
+                    skip_date.append(dt.day)
                     LOGGER.info(f"URL {remote_location} for {date_str} does not exist, skipping to next date")
                     continue
             for stn in stn_download_list:
