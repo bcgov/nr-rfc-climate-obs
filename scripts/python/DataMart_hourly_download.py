@@ -109,13 +109,14 @@ class data_config():
         self.var_names = var_names
 
     def update_data(self, date):
-        LOGGER.info(f"updating data for date {date}")
         default_date_format = '%Y%m%d'
         dt_txt = date.strftime(default_date_format)
+        LOGGER.info(f"updating data for date {dt_txt}")
         dt_range = pd.date_range(start = date.strftime('%Y/%m/%d 00:00'), end = date.strftime('%Y/%m/%d 23:00'), freq = 'h')
         #Conver dt_range to UTC since data on datamart is in UTC:
         #Limit dt_range_utc to < current time so that it is not trying to grab non-existant data:
-        dt_range_utc = dt_range[0:date.hour+1] + datetime.timedelta(hours=8)
+        #dt_range_utc = dt_range[0:date.hour+1] + datetime.timedelta(hours=8)
+        dt_range_utc = dt_range[0:date.hour+1].tz_localize('America/Vancouver').tz_convert(pytz.utc)
 
         all_data_objpath = os.path.join(self.objfolder,f'{dt_txt}.parquet')
         if self.onprem == False:
@@ -148,9 +149,10 @@ class data_config():
             if remote_location not in valid_url_list:
                 if url_exists(remote_location):
                     valid_url_list.append(remote_location)
+                    LOGGER.info(f"URL {remote_location} exists, proceeding with download")
                 else:
                     dt_range_utc = dt_range_utc[dt_range_utc.day != dt.day]
-                    LOGGER.info(f"URL for {date_str} does not exist, skipping to next date")
+                    LOGGER.info(f"URL {remote_location} for {date_str} does not exist, skipping to next date")
                     continue
             for stn in stn_download_list:
                 #Format html string for data location:
@@ -172,14 +174,16 @@ class data_config():
                 if output.loc[(stn,dt - datetime.timedelta(hours=8)),'f_read']!=True:
                     #Try filename format for automatic station, else try format for manual station:
                     for url in full_url:
-                        LOGGER.info(f"Downloading url: {url}")
                         if url_exists(url):
+                            LOGGER.info(f"Downloading url: {url}")
                             with requests.get(url, stream=True) as r:
                                 with open(local_filename, 'wb') as f:
                                     for chunk in r.iter_content(chunk_size=8192):
                                         f.write(chunk)
                                 LOGGER.info(f"Download succeeded")
                                 break
+                        else:
+                            LOGGER.info(f"URL does not exist: {url}")
                     #If file was downloaded succefully, write variables to dataframe:
                     if os.path.exists(local_filename):
                         output.loc[(stn,dt - datetime.timedelta(hours=8)),self.var_names] = retrieve_xml_values(local_filename,self.var_names).values
@@ -254,6 +258,7 @@ if __name__ == '__main__':
     #Github actions runs in UTC, convert to PST for script to work in github:
     tz = pytz.timezone('America/Vancouver')
     current_date = datetime.datetime.now(tz)- datetime.timedelta(days=days_back)
+    LOGGER.info(f"Current datetime is {current_date.strftime('%Y%m%d %H:%M')}")
     #current_date = datetime.datetime.now() - datetime.timedelta(days=days_back)
     #If downloading past days, set hour to 23 so entire day is downloaded (scripts only attempts download up to current hour for present day):
     if days_back>0:
