@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import NRUtil.NRObjStoreUtil as NRObjStoreUtil
 import pytz
+import jwt
 
 import logging
 import logging.config
@@ -69,6 +70,13 @@ def df_to_objstore(df, objpath, onprem=False):
         ostore.put_object(local_path=local_path, ostore_path=objpath)
         os.remove(local_path)
 
+def generate_token(role="web_user"):
+    payload = {
+        "role": role,
+        "exp": datetime.datetime.now(datetime.UTC) + datetime.timedelta(hours=1),
+        "iat": datetime.datetime.now(datetime.UTC)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
 #Search for desired variables in xml file, grab associated values:
 def retrieve_xml_values(xml_file,var_names):
@@ -220,6 +228,73 @@ class data_config():
         #Save temperature/precip dataframes as csv files and send to object store:
         df_to_objstore(output,output_obj,self.onprem)
 
+    def post_to_db(self, date, token):
+        dt_txt = date.strftime('%Y%m%d')
+        all_data_objpath = os.path.join(self.objfolder,f'{dt_txt}.parquet')
+        data = objstore_to_df(all_data_objpath,self.onprem)
+        data = data.reset_index()[['Station','DateTime','air_temp','pcpn_amt_pst1hr','f_read']]
+        data = data.rename(columns={'Station':'station_code',
+                                    'DateTime':'datetime',
+                                    'air_temp':'ta',
+                                    'pcpn_amt_pst1hr':'pc',
+                                    'f_read':'f_read'})
+        data['station_code'] = data['station_code'].str[1:]
+        data['datetime'] = data['datetime'].dt.tz_localize('US/Pacific').dt.tz_convert('UTC')
+
+        data['datetime'] = data['datetime'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+        data = data.replace({pd.NA: None, np.nan: None})
+        payload = data.to_dict(orient='records')
+
+        base_url = "https://rfc-db.apps.silver.devops.gov.bc.ca"
+        table_name = "eccc_raw"
+        url = f"{base_url}/{table_name}"
+        schema = "asp"
+
+        headers = {
+        "Content-Type": "application/json",
+        "Content-Profile": schema,  # Specify the 'data' schema for the insert
+        "Prefer": "resolution=merge-duplicates", # This enables UPSERT logic
+        "Authorization": f"Bearer {token}"
+        }
+        chunk_size = 10000
+        chunked_list = [payload[i:i + chunk_size] for i in range(0, len(payload), chunk_size)]
+        for chunk in chunked_list:
+            response = requests.post(url, json=chunk, headers=headers)
+            if response.status_code == 201:
+                print("Success: Data inserted.")
+            else:
+                print(f"Error {response.status_code}: {response.text}")
+
+    def upsert_to_db(self, date):
+        dt_txt = date.strftime('%Y%m%d')
+        all_data_objpath = os.path.join(self.objfolder,f'{dt_txt}.parquet')
+        #Reformat data for each variable into their own dataframes:
+        data = objstore_to_df(all_data_objpath,self.onprem)
+        output = data.reset_index()
+        output = output.rename(columns={'Station':'station_code',
+                                        'DateTime':'datetime',
+                                        'air_temp':'ta',
+                                        'pcpn_amt_pst1hr':'pc'})
+        output = output[['station_code','datetime','ta','pc']]
+        output['station_code'] = output['station_code'].str[1:]
+        output['datetime'] = output['datetime'].dt.tz_localize('US/Pacific').dt.tz_convert('UTC')
+        output['datetime'] = output['datetime'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+        output = output.replace({pd.NA: None, np.nan: None})
+        payload = output.to_dict(orient='records')
+
+        #base_url = "https://rfc-database.apps.silver.devops.gov.bc.ca"
+        base_url = "http://localhost:3000"
+        url = f"{base_url}/eccc_raw"
+        schema = "asp"
+        table_name = "measurements"
+        headers = {
+            "Content-Type": "application/json",
+            "Content-Profile": schema,  # Specify the 'data' schema for the insert
+            "Prefer": "resolution=merge-duplicates" # This enables UPSERT logic
+            #"Authorization": f"Bearer {token}"
+        }
+        response = requests.post(url, json=payload, headers=headers)
+
     def check_for_missing_data(self, date):
         default_date_format = '%Y%m%d'
         check_date = date.replace(hour=23) - datetime.timedelta(days=1)
@@ -327,3 +402,7 @@ if __name__ == '__main__':
         ECCC.write_data(dt,objpath,'air_temp','TA')
         ECCC.write_data(dt,objpath,'pcpn_amt_pst1hr','PC')
 
+    JWT_SECRET = os.getenv("JWT_SECRET")
+    # Use it in your request
+    token = generate_token()
+    ECCC.post_to_db(current_date, token)
