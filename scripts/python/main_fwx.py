@@ -5,9 +5,22 @@ governments data mart.
 import datetime
 import logging.config
 import os
+import pandas as pd
+import numpy as np
+import requests
+import jwt
 
 import main_fwx_api
 import remote_ostore_sync
+
+
+def generate_token(role="web_user"):
+    payload = {
+        "role": role,
+        "exp": datetime.datetime.now(datetime.UTC) + datetime.timedelta(hours=1),
+        "iat": datetime.datetime.now(datetime.UTC)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
 # debug params
 # if os.path.exists('junk.csv'):
@@ -116,3 +129,41 @@ fwx__hrly_api = main_fwx_api.WildfireAPI(start_date=hrly_start,end_date=hrly_end
 fwx__hrly_api.get_all_stations_hourlies(local_hrly_fpath, overwrite=True)
 
 ostr_hrly_sync.sync(overwrite = True)
+
+JWT_SECRET = os.getenv("JWT_SECRET")
+token = generate_token()
+data = pd.read_csv(local_hrly_fpath)
+data = data.reset_index()[['STATION_CODE','DATE_TIME','HOURLY_TEMPERATURE','HOURLY_PRECIPITATION','HOURLY_RELATIVE_HUMIDITY', 'HOURLY_WIND_SPEED','HOURLY_WIND_DIRECTION']]
+data = data.rename(columns={'STATION_CODE':'station_code',
+                            'DATE_TIME':'datetime',
+                            'HOURLY_TEMPERATURE':'ta',
+                            'HOURLY_PRECIPITATION':'pc',
+                            'HOURLY_RELATIVE_HUMIDITY':'rh',
+                            'HOURLY_WIND_SPEED':'ws',
+                            'HOURLY_WIND_DIRECTION':'wd'})
+data['datetime'] = pd.to_datetime(data['datetime'], format='%Y%m%d%H')
+data['datetime'] = data['datetime'].dt.tz_localize('US/Pacific').dt.tz_convert('UTC')
+data['datetime'] = data['datetime'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+
+data = data.replace({pd.NA: None, np.nan: None})
+payload = data.to_dict(orient='records')
+
+base_url = "https://rfc-db.apps.silver.devops.gov.bc.ca"
+table_name = "fwx_raw"
+url = f"{base_url}/{table_name}"
+schema = "asp"
+
+headers = {
+"Content-Type": "application/json",
+"Content-Profile": schema,  # Specify the 'data' schema for the insert
+"Prefer": "resolution=merge-duplicates", # This enables UPSERT logic
+"Authorization": f"Bearer {token}"
+}
+chunk_size = 10000
+chunked_list = [payload[i:i + chunk_size] for i in range(0, len(payload), chunk_size)]
+for chunk in chunked_list:
+    response = requests.post(url, json=chunk, headers=headers)
+    if response.status_code == 201:
+        print("Success: Data inserted.")
+    else:
+        print(f"Error {response.status_code}: {response.text}")
