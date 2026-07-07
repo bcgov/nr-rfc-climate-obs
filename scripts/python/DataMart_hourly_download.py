@@ -1,5 +1,6 @@
 import os
 import datetime
+import time
 import requests
 import xml.etree.ElementTree as ET
 import pandas as pd
@@ -39,7 +40,17 @@ def objstore_to_df(objpath,onprem=False):
         if not os.path.exists(local_folder):
             os.makedirs(local_folder)
         local_path = os.path.join(local_folder,filename)
-        ostore.get_object(local_path=local_path, file_path=objpath)
+        for attempt in range(3):
+            try:
+                ostore.get_object(local_path=local_path, file_path=objpath)
+                print(f"Successfully retrieved {objpath} on attempt {attempt + 1}.")
+                break
+            except Exception as e:
+                if attempt == 2:
+                    print(f"Failed after {3} attempts.")
+                print(f"Attempt {attempt + 1} failed: {e}. Retrying in {2}s...")
+                time.sleep(2)
+
     match filetype:
         case 'csv':
             output = pd.read_csv(local_path)
@@ -405,4 +416,9 @@ if __name__ == '__main__':
     JWT_SECRET = os.getenv("JWT_SECRET")
     # Use it in your request
     token = generate_token()
+    # dates = pd.date_range(start='2026-05-01', end='2026-05-19', freq='D')
+    # url_template = 'http://hpfx.collab.science.gc.ca/{date_str}/WXO-DD/observations/swob-ml/{date_str}/'
+    # ECCC = data_config(objfolder,False,stn_list,src_stn_list,url_template,fname_template,var_names)
+    # for current_date in dates:
+    #     ECCC.post_to_db(current_date, token)
     ECCC.post_to_db(current_date, token)
