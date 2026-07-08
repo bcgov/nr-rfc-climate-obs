@@ -1,5 +1,6 @@
 import os
 import datetime
+import sys
 import time
 import requests
 import xml.etree.ElementTree as ET
@@ -40,16 +41,22 @@ def objstore_to_df(objpath,onprem=False):
         if not os.path.exists(local_folder):
             os.makedirs(local_folder)
         local_path = os.path.join(local_folder,filename)
-        for attempt in range(3):
-            try:
-                ostore.get_object(local_path=local_path, file_path=objpath)
-                print(f"Successfully retrieved {objpath} on attempt {attempt + 1}.")
-                break
-            except Exception as e:
-                if attempt == 2:
-                    print(f"Failed after {3} attempts.")
-                print(f"Attempt {attempt + 1} failed: {e}. Retrying in {2}s...")
-                time.sleep(2)
+        try:
+            ostore.get_object(local_path=local_path, file_path=objpath)
+        except Exception as e:
+            print(f"Error: {e}", file=sys.stderr)
+            print("Exiting with Code 99 to trigger workflow runner replacement...", file=sys.stderr)
+            sys.exit(99)  # Special exit code for network block
+        # for attempt in range(3):
+        #     try:
+        #         ostore.get_object(local_path=local_path, file_path=objpath)
+        #         print(f"Successfully retrieved {objpath} on attempt {attempt + 1}.")
+        #         break
+        #     except Exception as e:
+        #         if attempt == 2:
+        #             print(f"Failed after {3} attempts.")
+        #         print(f"Attempt {attempt + 1} failed: {e}. Retrying in {2}s...")
+        #         time.sleep(2)
 
     match filetype:
         case 'csv':
@@ -422,3 +429,4 @@ if __name__ == '__main__':
     # for current_date in dates:
     #     ECCC.post_to_db(current_date, token)
     ECCC.post_to_db(current_date, token)
+    sys.exit(0)
