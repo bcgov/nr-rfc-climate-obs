@@ -52,7 +52,7 @@ jobs:
       with:
         command: python scripts/python/DataMart_hourly_download.py
         attempt_limit: 5  # Tries up to 5 completely different runner IPs
-
+        completion_condition: "always"
         # ONLY retry if the exit code is EXACTLY 99
         retry_condition: steps.current.outputs.exit_code == 99
 
