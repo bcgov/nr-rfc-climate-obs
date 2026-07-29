@@ -195,7 +195,7 @@ class data_config():
                     if url_exists(stn_url):
                         valid_url_list.append(stn_url)
                     else:
-                        LOGGER.info(f"URL for {stn} does not exist, skipping to next station")
+                        LOGGER.info(f"URL for {stn} {stn_url} does not exist, skipping to next station")
                         stn_download_list.remove(stn)
                         continue
                 local_filename = os.path.join(local_file_path,f'{stn}-{dt_str}.xml')
@@ -263,7 +263,7 @@ class data_config():
         data = data.replace({pd.NA: None, np.nan: None})
         payload = data.to_dict(orient='records')
 
-        base_url = "https://rfc-db.apps.silver.devops.gov.bc.ca"
+        base_url = "https://rfc-db-dev.apps.silver.devops.gov.bc.ca"
         table_name = "eccc_raw"
         url = f"{base_url}/{table_name}"
         schema = "asp"
