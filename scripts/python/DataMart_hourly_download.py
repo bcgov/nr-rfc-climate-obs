@@ -3,6 +3,9 @@ import datetime
 import sys
 import time
 import requests
+import itertools
+from bs4 import BeautifulSoup
+from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
 import pandas as pd
 import numpy as np
@@ -124,6 +127,43 @@ def url_exists(url):
         # This handles ConnectionError, HTTPError, Timeout, etc.
         return False
 
+# Caches the scraped directory listings
+# Format: { "parent_url/": {"child_dir1/", "child_dir2/", "file1.csv"} }
+dir_listings_cache = {}
+failed_paths = set()
+
+def get_directory_contents(dir_url):
+    """Fetches a directory index page and returns a set of all found links."""
+    if dir_url in dir_listings_cache:
+        return dir_listings_cache[dir_url]
+
+    print(f"Scraping directory contents for: {dir_url}")
+    try:
+        response = requests.get(dir_url, timeout=5)
+        if response.status_code != 200:
+            return None
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+        links = set()
+
+        for a_tag in soup.find_all('a', href=True):
+            href = a_tag['href']
+            # Normalize absolute/relative links to pure trailing name or full path
+            clean_name = href.split('/')[-1] if not href.endswith('/') else href.split('/')[-2] + '/'
+            links.add(clean_name)
+
+        dir_listings_cache[dir_url] = links
+        return links
+    except requests.RequestException:
+        return None
+
+def get_progressive_segments(url):
+    """Breaks down a URL into structural components for validation."""
+    parsed = urlparse(url)
+    segments = [seg for seg in os.path.dirname(parsed.path).split('/') if seg]
+    filename = os.path.basename(parsed.path)
+    return parsed.scheme, parsed.netloc, segments, filename
+
 class data_config():
     def __init__(self, objfolder, onprem, stn_list, src_stn_list, url_template, fname_template, var_names):
         self.objfolder = objfolder
@@ -135,6 +175,135 @@ class data_config():
         self.var_names = var_names
 
     def update_data(self, date):
+            default_date_format = '%Y%m%d'
+            dt_txt = date.strftime(default_date_format)
+            LOGGER.info(f"updating data for date {dt_txt}")
+            dt_range = pd.date_range(start = date.strftime('%Y/%m/%d 00:00'), end = date.strftime('%Y/%m/%d 23:00'), freq = 'h')
+            #Conver dt_range to UTC since data on datamart is in UTC:
+            #Limit dt_range_utc to < current time so that it is not trying to grab non-existant data:
+            #dt_range_utc = dt_range[0:date.hour+1] + datetime.timedelta(hours=8)
+            dt_range_utc = dt_range[0:date.hour+1].tz_localize('America/Vancouver').tz_convert(pytz.utc)
+
+            all_data_objpath = os.path.join(self.objfolder,f'{dt_txt}.parquet')
+            if self.onprem == False:
+                all_data_objs = ostore.list_objects(self.objfolder,return_file_names_only=True)
+            else:
+                all_data_objs = os.listdir(self.objfolder)
+            local_file_path = 'raw_data/temp_data'
+            if not os.path.exists(local_file_path):
+                os.makedirs(local_file_path)
+            if all_data_objpath in all_data_objs:
+                #ostore.get_object(local_path=local_data_fpath, file_path=all_data_objpath)
+                #output = pd.read_parquet(local_data_fpath)
+                output = objstore_to_df(all_data_objpath,self.onprem)
+            else:
+                output_ind = pd.MultiIndex.from_product([self.src_stn_list,dt_range], names=["Station", "DateTime"])
+                output = pd.DataFrame(data=None,index=output_ind,columns=self.var_names+['f_read'])
+
+            if type(self.fname_template)!=list:
+                self.fname_template=[self.fname_template]
+            #Download ECCC weather observation data from DataMart, store values in dataframe:
+            #Loop through each station in station list, each hour in datetime range:
+            #for stn in self.src_stn_list:
+            #    for dt in dt_range_utc:
+            data_sources = []
+            unread_mask = output['f_read'] != True
+            stn_download_list = list(self.src_stn_list)
+            valid_combinations = set(output[unread_mask].index)
+
+            for stn, dt, (priority, fname) in itertools.product(stn_download_list, dt_range_utc, enumerate(self.fname_template)):
+                dt_pacific = dt.tz_convert('America/Vancouver').replace(tzinfo=None)
+                if (stn, dt_pacific) not in valid_combinations:
+                    continue
+                dt_str = dt.strftime('%Y-%m-%d-%H00')
+                date_str = dt.strftime(default_date_format)
+                remote_location = self.url_template.format(date_str=date_str)
+                filename = fname.format(stn=stn,dt_str=dt_str)
+                url = os.path.join(remote_location,filename)
+                local_filename = os.path.join(local_file_path,f'{stn}-{dt_str}.xml')
+
+                data_sources.append({
+                    "stn": stn,
+                    "dt": dt_pacific,
+                    "url": url,
+                    "local_path": local_filename,  # Keeps file names unique
+                    "priority": priority
+                })
+
+            existing_items = []
+            for item in data_sources:
+                url = item["url"]
+                if not url:
+                    continue
+
+                scheme, netloc, segments, filename = get_progressive_segments(url)
+                current_dir_url = f"{scheme}://{netloc}/"
+                path_is_valid = True
+
+                for segment in segments:
+                    if current_dir_url in failed_paths:
+                        path_is_valid = False
+                        break
+
+                    contents = get_directory_contents(current_dir_url)
+                    if contents is None:
+                        failed_paths.add(current_dir_url)
+                        path_is_valid = False
+                        break
+
+                    expected_dir = f"{segment}/"
+                    if expected_dir in contents or segment in contents:
+                        current_dir_url = f"{current_dir_url}{segment}/"
+                    else:
+                        path_is_valid = False
+                        break
+
+                if path_is_valid:
+                    final_contents = get_directory_contents(current_dir_url)
+                    if final_contents and filename in final_contents:
+                        existing_items.append(item)  # Only keep verified URLs
+
+            best_items_by_path = {}
+            for item in existing_items:
+                path = item.get("local_path")
+                priority = item.get("priority", float('inf')) # Fallback if priority missing
+
+                if path not in best_items_by_path:
+                    best_items_by_path[path] = item
+                else:
+                    # Compare current item's priority to the previously stored item
+                    if priority < best_items_by_path[path].get("priority", float('inf')):
+                        best_items_by_path[path] = item
+            data_items = list(best_items_by_path.values())
+
+            for item in data_items:
+                stn = item["stn"]
+                dt_pacific = item["dt"]
+                url = item["url"]
+                local_filename = item["local_path"]
+
+                LOGGER.info(f"Downloading url: {url}")
+                try:
+                    with requests.get(url, stream=True) as r:
+                        r.raise_for_status()  # Raise an error for bad responses
+                        with open(local_filename, 'wb') as f:
+                            for chunk in r.iter_content(chunk_size=8192):
+                                f.write(chunk)
+                    LOGGER.info(f"Download succeeded for {url}")
+
+                    if os.path.exists(local_filename):
+                        output.loc[(stn, dt_pacific), self.var_names] = retrieve_xml_values(local_filename, self.var_names).values
+                        output.loc[(stn, dt_pacific), 'f_read'] = True
+                        os.remove(local_filename)
+                except requests.exceptions.RequestException as e:
+                    LOGGER.error(f"Failed to download {url}: {e}")
+
+            #Save dataframe to parquet file and send to object store:
+            #output.to_parquet(local_data_fpath)
+            #ostore.put_object(local_path=local_data_fpath, ostore_path=all_data_objpath)
+            df_to_objstore(output, all_data_objpath, self.onprem)
+
+    def update_data_old(self, date):
         default_date_format = '%Y%m%d'
         dt_txt = date.strftime(default_date_format)
         LOGGER.info(f"updating data for date {dt_txt}")
