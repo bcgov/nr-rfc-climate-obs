@@ -429,6 +429,8 @@ class data_config():
         data['datetime'] = data['datetime'].dt.tz_localize('US/Pacific').dt.tz_convert('UTC')
 
         data['datetime'] = data['datetime'].dt.strftime('%Y-%m-%dT%H:%M:%S')
+        data['ta'] = pd.to_numeric(data['ta'], errors='coerce')
+        data['pc'] = pd.to_numeric(data['pc'], errors='coerce')
         data = data.replace({pd.NA: None, np.nan: None})
         payload = data.to_dict(orient='records')
 
