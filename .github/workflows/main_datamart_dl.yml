@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false  # Allows subsequent attempts to run even if an earlier one fails
+      max-parallel: 1
       matrix:
         # Spawns up to 3 distinct runner instances sequentially
         attempt: [1, 2, 3]
