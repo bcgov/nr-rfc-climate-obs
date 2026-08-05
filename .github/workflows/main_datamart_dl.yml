@@ -40,6 +40,8 @@ jobs:
 
     - name: Check if Previous Attempt Succeeded
       id: status_check
+      env:
+          GH_TOKEN: ${{ github.token }}
       run: |
         # Use GitHub CLI to check if this specific workflow run has already succeeded in an earlier matrix leg
         SUCCESSFUL_RUNS=$(gh run view ${{ github.run_id }} --json jobs --jq '.jobs[] | select(.name | contains("download")) | .conclusion' | grep -c "success" || true)
@@ -50,8 +52,8 @@ jobs:
         else
           echo "No successful attempts yet. Proceeding."
           echo "skip=false" >> $GITHUB_OUTPUT
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        fi
+
 
     - name: Fast Fail Connection Check
       if: steps.status_check.outputs.skip != 'true'
