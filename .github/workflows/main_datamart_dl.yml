@@ -71,6 +71,7 @@ jobs:
 
     - id: install_dependencies
       name: install python dependencies
+      if: steps.status_check.outputs.skip != 'true'
       shell: bash
       run: |
         pip install --upgrade pip
@@ -78,6 +79,7 @@ jobs:
 
     - id: debug
       name: debug and list files
+      if: steps.status_check.outputs.skip != 'true'
       shell: bash
       run: |
         ls -la
