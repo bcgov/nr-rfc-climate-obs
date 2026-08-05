@@ -39,27 +39,27 @@ jobs:
         python-version: '3.13'
 
     - name: Check if Previous Attempt Succeeded
-        id: status_check
-        run: |
-          # Use GitHub CLI to check if this specific workflow run has already succeeded in an earlier matrix leg
-          SUCCESSFUL_RUNS=$(gh run view ${{ github.run_id }} --json jobs --jq '.jobs[] | select(.name | contains("download")) | .conclusion' | grep -c "success" || true)
+      id: status_check
+      run: |
+        # Use GitHub CLI to check if this specific workflow run has already succeeded in an earlier matrix leg
+        SUCCESSFUL_RUNS=$(gh run view ${{ github.run_id }} --json jobs --jq '.jobs[] | select(.name | contains("download")) | .conclusion' | grep -c "success" || true)
 
-          if [ "$SUCCESSFUL_RUNS" -gt 0 ]; then
-            echo "A previous attempt already succeeded. Skipping this runner."
-            echo "skip=true" >> $GITHUB_OUTPUT
-          else
-            echo "No successful attempts yet. Proceeding."
-            echo "skip=false" >> $GITHUB_OUTPUT
-          env:
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if [ "$SUCCESSFUL_RUNS" -gt 0 ]; then
+          echo "A previous attempt already succeeded. Skipping this runner."
+          echo "skip=true" >> $GITHUB_OUTPUT
+        else
+          echo "No successful attempts yet. Proceeding."
+          echo "skip=false" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Fast Fail Connection Check
-        if: steps.status_check.outputs.skip != 'true'
-        run: |
-          echo "Testing connection to object storage endpoint from runner IP..."
-          # Replace with your actual object storage endpoint (e.g., S3, Azure Blob, etc.)
-          # If connection times out in 5 seconds, it kills this runner immediately.
-          curl --connect-timeout 5 -I https://nrs.objectstore.gov.bc.ca/rfcdata
+      if: steps.status_check.outputs.skip != 'true'
+      run: |
+        echo "Testing connection to object storage endpoint from runner IP..."
+        # Replace with your actual object storage endpoint (e.g., S3, Azure Blob, etc.)
+        # If connection times out in 5 seconds, it kills this runner immediately.
+        curl --connect-timeout 5 -I https://nrs.objectstore.gov.bc.ca/rfcdata
 
     - id: install_dependencies
       name: install python dependencies
