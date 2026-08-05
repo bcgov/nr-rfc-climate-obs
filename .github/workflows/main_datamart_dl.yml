@@ -45,13 +45,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
       run: |
         # Use GitHub CLI to check if this specific workflow run has already succeeded in an earlier matrix leg
-        SUCCESSFUL_RUNS=$(gh run view ${{ github.run_id }} --json jobs --jq '.jobs[] | select(.name | contains("download")) | .conclusion' | grep -c "success" || true)
+        COMPLETED_SUCCESSFUL_JOBS=$(gh run view ${{ github.run_id }} --json jobs --jq '.jobs[] | select(.status == "completed" and .conclusion != "failure" and .conclusion != "cancelled") | .name' | grep -c "download" || true)
 
-        if [ "$SUCCESSFUL_RUNS" -gt 0 ]; then
-          echo "A previous attempt already succeeded. Skipping this runner."
+        if [ "$COMPLETED_SUCCESSFUL_JOBS" -gt 0 ]; then
+          echo "An earlier runner completed the task successfully. Skipping."
           echo "skip=true" >> $GITHUB_OUTPUT
         else
-          echo "No successful attempts yet. Proceeding."
+          echo "No successful runs completed yet. Proceeding."
           echo "skip=false" >> $GITHUB_OUTPUT
         fi
 
