@@ -16,6 +16,8 @@ jobs:
         shell: bash
     name: 'Download and process hourly datamart weather observations'
     runs-on: ubuntu-22.04
+    permissions:
+      actions: read
     strategy:
       fail-fast: false  # Allows subsequent attempts to run even if an earlier one fails
       max-parallel: 1
@@ -45,7 +47,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
       run: |
         # Use GitHub CLI to check if this specific workflow run has already succeeded in an earlier matrix leg
-        COMPLETED_SUCCESSFUL_JOBS=$(gh run view ${{ github.run_id }} --json jobs --jq '.jobs[] | select(.status == "completed" and .conclusion != "failure" and .conclusion != "cancelled") | .name' | grep -c "download" || true)
+        RAW_JOBS=$(gh run view ${{ github.run_id }} --json jobs | tee /dev/stderr)
+
+        echo "=== DEBUG: Running JQ filter against payload ==="
+        COMPLETED_SUCCESSFUL_JOBS=$(echo "$RAW_JOBS" | jq '.jobs[] | select(.status == "completed" and .conclusion != "failure" and .conclusion != "cancelled") | .name' | grep -c "download" || true)
 
         if [ "$COMPLETED_SUCCESSFUL_JOBS" -gt 0 ]; then
           echo "An earlier runner completed the task successfully. Skipping."
