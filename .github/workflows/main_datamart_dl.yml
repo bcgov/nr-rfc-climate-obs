@@ -16,6 +16,11 @@ jobs:
         shell: bash
     name: 'Download and process hourly datamart weather observations'
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false  # Allows subsequent attempts to run even if an earlier one fails
+      matrix:
+        # Spawns up to 3 distinct runner instances sequentially
+        attempt: [1, 2, 3]
     environment: PROD
     env:
       OBJ_STORE_BUCKET: ${{ secrets.OBJ_STORE_BUCKET }}
@@ -33,6 +38,29 @@ jobs:
       with:
         python-version: '3.13'
 
+    - name: Check if Previous Attempt Succeeded
+        id: status_check
+        run: |
+          # Use GitHub CLI to check if this specific workflow run has already succeeded in an earlier matrix leg
+          SUCCESSFUL_RUNS=$(gh run view ${{ github.run_id }} --json jobs --jq '.jobs[] | select(.name | contains("download")) | .conclusion' | grep -c "success" || true)
+
+          if [ "$SUCCESSFUL_RUNS" -gt 0 ]; then
+            echo "A previous attempt already succeeded. Skipping this runner."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "No successful attempts yet. Proceeding."
+            echo "skip=false" >> $GITHUB_OUTPUT
+          env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Fast Fail Connection Check
+        if: steps.status_check.outputs.skip != 'true'
+        run: |
+          echo "Testing connection to object storage endpoint from runner IP..."
+          # Replace with your actual object storage endpoint (e.g., S3, Azure Blob, etc.)
+          # If connection times out in 5 seconds, it kills this runner immediately.
+          curl --connect-timeout 5 -I https://nrs.objectstore.gov.bc.ca/rfcdata
+
     - id: install_dependencies
       name: install python dependencies
       shell: bash
@@ -46,12 +74,11 @@ jobs:
       run: |
         ls -la
 
-    - name: download from DataMart with retry
+    - name: download from DataMart
       id: download_DataMart
-      uses: Wandalen/wretry.action@v3
-      with:
-        command: python scripts/python/DataMart_hourly_download.py
-        attempt_limit: 5  # Tries up to 5 completely different runner IPs
+      if: steps.status_check.outputs.skip != 'true'
+      run: |
+        python scripts/python/DataMart_hourly_download.py
 
     # - id: download_DataMart
     #   name: download datamart climateobs data and upload to s3
