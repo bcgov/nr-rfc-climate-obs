@@ -50,7 +50,7 @@ jobs:
         RAW_JOBS=$(gh run view ${{ github.run_id }} --json jobs | tee /dev/stderr)
 
         echo "=== DEBUG: Running JQ filter against payload ==="
-        COMPLETED_SUCCESSFUL_JOBS=$(echo "$RAW_JOBS" | jq '.jobs[] | select(.status == "completed" and .conclusion != "failure" and .conclusion != "cancelled") | .name' | grep -c "download" || true)
+        COMPLETED_SUCCESSFUL_JOBS=$(echo "$RAW_JOBS" | jq '.jobs[] | select(.status == "completed" and .conclusion != "failure" and .conclusion != "cancelled") | .name' | grep -ic "download" || true)
 
         if [ "$COMPLETED_SUCCESSFUL_JOBS" -gt 0 ]; then
           echo "An earlier runner completed the task successfully. Skipping."
