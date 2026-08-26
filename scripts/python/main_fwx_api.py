@@ -9,6 +9,7 @@ import logging.config
 import os.path
 import pprint
 from typing import Union
+import time
 
 import fwx_typedicts
 import requests
@@ -75,6 +76,7 @@ class WildfireAPI:
             retrieved from the api, defaults to None
         :type date_toquery: datetime, optional
         """
+        self.session = requests.Session()
         self.api_url = url
         self.standard_date_time_end = end_date
         self.standard_date_time_start = start_date
@@ -225,7 +227,7 @@ class WildfireAPI:
         :rtype: dict
         """
         url = f'{self.api_url}/stations/{station_code}'
-        r = requests.get(url)
+        r = self.session.get(url)
         r_data = r.json()
         return r_data
 
@@ -243,7 +245,7 @@ class WildfireAPI:
         :rtype: list
         """
         params['pageNumber'] = 1
-        r = requests.get(url, params=params)
+        r = self.session.get(url, params=params)
         r_data = r.json()
         station_codes = [station['stationCode'] for station in r_data['collection']]
         LOGGER.debug(f"station codes: {station_codes}")
@@ -253,7 +255,7 @@ class WildfireAPI:
         if r_data['totalPageCount'] > 1:
             for page_cnt in range(2, r_data['totalPageCount'] + 1):
                 params['pageNumber'] = page_cnt
-                r = requests.get(url, params=params)
+                r = self.session.get(url, params=params)
                 r_data = r.json()
                 all_pages.extend(r_data['collection'])
         return all_pages
@@ -286,7 +288,7 @@ class WildfireAPI:
                  'to': f'{end_time_str}'}
 
         # get the first page
-        r = requests.get(url, params=query)
+        r = self.session.get(url, params=query)
         r_data = r.json()
         all_pages = r_data['collection']
 
@@ -295,7 +297,8 @@ class WildfireAPI:
 
             for page_cnt in range(r_data['totalPageCount']):
                 query['pageNumber'] = page_cnt
-                r = requests.get(url, params=query)
+                time.sleep(0.1)
+                r = self.session.get(url, params=query)
                 r_data = r.json()
                 all_pages.extend(r_data['collection'])
         return all_pages

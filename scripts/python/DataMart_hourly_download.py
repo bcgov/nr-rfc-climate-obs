@@ -426,7 +426,8 @@ class data_config():
                                     'pcpn_amt_pst1hr':'pc',
                                     'f_read':'f_read'})
         data['station_code'] = data['station_code'].str[1:]
-        data['datetime'] = data['datetime'].dt.tz_localize('US/Pacific').dt.tz_convert('UTC')
+        #data['datetime'] = data['datetime'].dt.tz_localize('US/Pacific').dt.tz_convert('UTC')
+        data['datetime'] = data['datetime'].dt.tz_localize('Etc/GMT+7').dt.tz_convert('UTC')
 
         data['datetime'] = data['datetime'].dt.strftime('%Y-%m-%dT%H:%M:%S')
         data['ta'] = pd.to_numeric(data['ta'], errors='coerce')
@@ -591,6 +592,11 @@ if __name__ == '__main__':
         ECCC.write_data(dt,objpath,'air_temp','TA')
         ECCC.write_data(dt,objpath,'pcpn_amt_pst1hr','PC')
 
+    #url_template = 'http://hpfx.collab.science.gc.ca/{date_str}/WXO-DD/observations/swob-ml/{date_str}/'
+    #ECCC = data_config(objfolder,False,stn_list,src_stn_list,url_template,fname_template,var_names)
+    date_range = [current_date]
+    #date_range = pd.date_range(start = current_date - pd.Timedelta(days=141), end = current_date - pd.Timedelta(days=30), freq = 'd')
+
     JWT_SECRET = os.getenv("JWT_SECRET")
     # Use it in your request
     token = generate_token()
@@ -599,5 +605,6 @@ if __name__ == '__main__':
     # ECCC = data_config(objfolder,False,stn_list,src_stn_list,url_template,fname_template,var_names)
     # for current_date in dates:
     #     ECCC.post_to_db(current_date, token)
-    ECCC.post_to_db(current_date, token)
+    for date in date_range:
+        ECCC.post_to_db(date, token)
     sys.exit(0)
